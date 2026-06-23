@@ -1,63 +1,94 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
-
+import { useNavigate, useLocation } from "react-router-dom";
 import {
   FaHeartbeat,
   FaCheckCircle,
   FaTimesCircle,
   FaBarcode,
+  FaArrowLeft,
+  FaPlus,
 } from "react-icons/fa";
+import Swal from "sweetalert2";
 
 export default function Maquinas() {
 
   const [maquinas, setMaquinas] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  const [page, setPage] = useState(1);
+  const pageSize = 15;
+  const [total, setTotal] = useState(0);
+
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const obtenerDatos = async (pagina = 1) => {
+
+    setLoading(true);
+
+    const from = (pagina - 1) * pageSize;
+    const to = from + pageSize - 1;
+
+    const { data, error, count } = await supabase
+      .from("maquinas")
+      .select("*", { count: "exact" })
+      .order("creado_en", { ascending: false })
+      .range(from, to);
+
+    if (error) {
+      console.log(error);
+      setLoading(false);
+      return;
+    }
+
+    setMaquinas(data);
+    setTotal(count || 0);
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    obtenerDatos(page);
+  }, [page]);
 
   useEffect(() => {
 
-    const obtenerDatos = async () => {
+    if (location.state?.mensaje) {
 
-      const { data, error } = await supabase
-        .from("maquinas")
-        .select("*");
+      Swal.fire({
+        title: "🩺 Éxito",
+        text: location.state.mensaje,
+        icon: "success",
+        confirmButtonColor: "#0891b2",
+        background: "#f8fafc",
+        timer: 2500,
+        showConfirmButton: false
+      });
 
-      if (error) {
+      window.history.replaceState({}, document.title);
+    }
 
-        console.log(error);
+  }, [location]);
 
-        return;
-
-      }
-
-      setMaquinas(data);
-
-    };
-
-    obtenerDatos();
-
-  }, []);
+  const totalPages = Math.ceil(total / pageSize);
 
   const Estado = ({ valor }) => {
 
     return valor ? (
-
       <div className="flex justify-center">
         <div className="flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
           <FaCheckCircle />
           Completado
         </div>
       </div>
-
     ) : (
-
       <div className="flex justify-center">
         <div className="flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-semibold">
           <FaTimesCircle />
           Pendiente
         </div>
       </div>
-
     );
-
   };
 
   return (
@@ -65,223 +96,142 @@ export default function Maquinas() {
     <div className="min-h-screen bg-slate-100 p-4 md:p-8">
 
       {/* TITULO */}
-
       <div className="mb-8">
 
-        <div className="flex items-center gap-3">
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
 
-          <div className="bg-cyan-600 p-4 rounded-2xl shadow-lg">
+          <div className="flex items-center gap-3">
 
-            <FaHeartbeat className="text-white text-3xl" />
+            <div className="bg-cyan-600 p-4 rounded-2xl shadow-lg">
+              <FaHeartbeat className="text-white text-3xl" />
+            </div>
+
+            <div>
+              <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
+                Gestión de Máquinas Médicas
+              </h1>
+              <p className="text-slate-500 mt-1">
+                Seguimiento del proceso de mantenimiento.
+              </p>
+            </div>
 
           </div>
 
-          <div>
+          <div className="flex gap-3">
 
-            <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
+            <button
+              onClick={() => navigate("/home")}
+              className="flex items-center gap-2 px-5 py-3 bg-slate-700 hover:bg-slate-800 text-white rounded-xl shadow-md transition"
+            >
+              <FaArrowLeft />
+              Regresar
+            </button>
 
-              Gestión de Máquinas Médicas
-
-            </h1>
-
-            <p className="text-slate-500 mt-1">
-
-              Seguimiento del proceso de mantenimiento y preparación.
-
-            </p>
+            <button
+              onClick={() => navigate("/agregar-maquina")}
+              className="flex items-center gap-2 px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md transition"
+            >
+              <FaPlus />
+              Agregar
+            </button>
 
           </div>
 
         </div>
-
       </div>
 
       {/* TARJETA */}
-
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
 
-        <div className="overflow-x-auto">
-
-          <table className="min-w-full">
-
-            <thead>
-
-              <tr className="bg-cyan-700 text-white text-sm uppercase">
-
-                <th className="px-6 py-5 text-left">
-
-                  Máquina
-
-                </th>
-
-                <th className="px-6 py-5 text-left">
-
-                  Serie / Lote
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  Recolección
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  Limpieza
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  Prueba CAN
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  Reparación
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  Actualización
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  TSC
-
-                </th>
-
-                <th className="px-4 py-5 text-center">
-
-                  Empaque
-
-                </th>
-
-              </tr>
-
-            </thead>
-
-            <tbody>
-
-              {
-
-                maquinas.map((m, index) => (
-
-                  <tr
-                    key={m.id}
-                    className={`
-                    border-b border-slate-100
-                    hover:bg-cyan-50
-                    transition
-                    ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}
-                  `}
-                  >
-
-                    <td className="px-6 py-5">
-
-                      <div className="flex items-center gap-3">
-
-                        <div className="bg-cyan-100 p-3 rounded-xl">
-
-                          <FaHeartbeat className="text-cyan-700 text-xl" />
-
-                        </div>
-
-                        <div>
-
-                          <p className="font-bold text-slate-800">
-
-                            {m.nombre}
-
-                          </p>
-
-                          <p className="text-sm text-slate-500">
-
-                            Equipo médico
-
-                          </p>
-
-                        </div>
-
-                      </div>
-
-                    </td>
-
-                    <td className="px-6 py-5">
-
-                      <div className="flex items-center gap-2 text-slate-700">
-
-                        <FaBarcode className="text-cyan-600" />
-
-                        {m.serie_lote}
-
-                      </div>
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.recoleccion} />
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.limpieza} />
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.prueba_can} />
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.reparacion} />
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.actualizacion} />
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.tsc} />
-
-                    </td>
-
-                    <td className="px-3 py-5 text-center">
-
-                      <Estado valor={m.empaque} />
-
-                    </td>
+        {loading ? (
+
+          <div className="p-10 text-center text-slate-500">
+            ⏳ Cargando máquinas...
+          </div>
+
+        ) : (
+
+          <>
+            <div className="overflow-x-auto">
+
+              <table className="min-w-full">
+
+                <thead>
+                  <tr className="bg-cyan-700 text-white text-sm uppercase">
+
+                    <th className="px-6 py-5 text-left">Máquina</th>
+                    <th className="px-6 py-5 text-left">Serie / Lote</th>
+                    <th className="px-4 py-5 text-center">Recolección</th>
+                    <th className="px-4 py-5 text-center">Limpieza</th>
+                    <th className="px-4 py-5 text-center">Prueba CAN</th>
+                    <th className="px-4 py-5 text-center">Reparación</th>
+                    <th className="px-4 py-5 text-center">Actualización</th>
+                    <th className="px-4 py-5 text-center">TSC</th>
+                    <th className="px-4 py-5 text-center">Empaque</th>
 
                   </tr>
+                </thead>
 
-                ))
+                <tbody>
 
-              }
+                  {maquinas.map((m, index) => (
+                    <tr
+                      key={m.id}
+                      onClick={() => navigate(`/editar-maquina/${m.id}`)}
+                      className={`border-b hover:bg-cyan-50 transition cursor-pointer
+                      ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
+                    >
 
-            </tbody>
+                      <td className="px-6 py-5 font-bold">{m.nombre}</td>
+                      <td className="px-6 py-5">{m.serie_lote}</td>
 
-          </table>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.recoleccion} /></td>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.limpieza} /></td>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.prueba_can} /></td>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.reparacion} /></td>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.actualizacion} /></td>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.tsc} /></td>
+                      <td className="px-3 py-5 text-center"><Estado valor={m.empaque} /></td>
 
-        </div>
+                    </tr>
+                  ))}
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+            {/* PAGINACIÓN */}
+            <div className="flex justify-center gap-2 p-4">
+
+              <button
+                disabled={page === 1}
+                onClick={() => setPage(page - 1)}
+                className="px-4 py-2 bg-slate-200 rounded disabled:opacity-50"
+              >
+                Anterior
+              </button>
+
+              <span className="px-4 py-2">
+                Página {page} de {totalPages}
+              </span>
+
+              <button
+                disabled={page === totalPages}
+                onClick={() => setPage(page + 1)}
+                className="px-4 py-2 bg-slate-200 rounded disabled:opacity-50"
+              >
+                Siguiente
+              </button>
+
+            </div>
+
+          </>
+        )}
 
       </div>
 
     </div>
-
   );
-
 }

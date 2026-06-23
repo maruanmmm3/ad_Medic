@@ -5,6 +5,8 @@ import Maquinas from "../pages/Maquinas";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import Perfil from "../pages/Perfil";
+import AgregarMaquina from "../pages/formularios/AgregarMaquina";
+import EditarMaquina from "../pages/formularios/EditarMaquina";
 
 function AppRoutes() {
   return (
@@ -35,7 +37,22 @@ function AppRoutes() {
         </ProtectedRoute>
         } 
       />
-
+    <Route
+      path="/agregar-maquina"
+      element={
+        <ProtectedRoute>
+          <AgregarMaquina />
+        </ProtectedRoute>
+        }
+      />
+      <Route
+      path="/editar-maquina/:id"
+      element={
+        <ProtectedRoute>
+          <EditarMaquina />
+        </ProtectedRoute>
+        }
+      />
       <Route 
       path="/perfil" 
       element={
