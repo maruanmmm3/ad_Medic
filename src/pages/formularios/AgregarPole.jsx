@@ -4,7 +4,7 @@ import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
 import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 
-export default function AgregarMaquina() {
+export default function AgregarPole() {
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
@@ -31,18 +31,16 @@ export default function AgregarMaquina() {
       return;
     }
 
-    const { error } = await supabase.from("maquinas").insert([
+    const { error } = await supabase.from("poles").insert([
       {
         nombre,
         serie_lote: serieLote,
-        categoria_id: categoria,
         recoleccion: false,
+        recuperacion: false,
+        base: false,
+        pintura: false,
         limpieza: false,
-        prueba_can: false,
-        reparacion: false,
-        actualizacion: false,
-        tsc: false,
-        empaque: false,
+        empaquetado: false,
       },
     ]);
 
@@ -52,7 +50,7 @@ export default function AgregarMaquina() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo registrar la máquina",
+        text: "No se pudo registrar la pole",
       });
 
       return;
@@ -60,7 +58,7 @@ export default function AgregarMaquina() {
 
     Swal.fire({
       icon: "success",
-      title: "🩺 Máquina registrada",
+      title: "🩺 Pole registrada",
       text: "Se guardó correctamente",
       timer: 2000,
       showConfirmButton: false,
@@ -68,7 +66,7 @@ export default function AgregarMaquina() {
 
     setLoading(false);
 
-    navigate("/maquinas/bombas", {
+    navigate("/maquinas/poles", {
       state: {
         mensaje: "Máquina registrada correctamente",
       },
@@ -79,7 +77,7 @@ export default function AgregarMaquina() {
     const { data, error } = await supabase
       .from("categorias")
       .select("id, nombre")
-      .eq("tipo", "Bomba")
+      .eq("tipo", "Pole")
       .order("nombre", { ascending: true });
 
     if (error) {
@@ -242,7 +240,7 @@ export default function AgregarMaquina() {
                 className="flex items-center gap-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl shadow-lg transition"
               >
                 <FaSave />
-                {loading ? "Guardando..." : "Guardar Máquina"}
+                {loading ? "Guardando..." : "Guardar Pole"}
               </button>
             </div>
           </div>

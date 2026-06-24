@@ -1,33 +1,25 @@
 import { Link, useNavigate } from "react-router-dom";
 import { useState } from "react";
-// import { supabase } from "../lib/supabase";
 
 function Navbar() {
-
   const [open, setOpen] = useState(false);
-
   const [openPerfil, setOpenPerfil] = useState(false);
+  const [openMaquinas, setOpenMaquinas] = useState(false);
 
   const navigate = useNavigate();
 
   const cerrarSesion = () => {
     localStorage.removeItem("usuario");
     navigate("/");
-  }
+  };
 
   return (
-
     <nav className="bg-white shadow-md">
-
       <div className="max-w-7xl mx-auto px-6">
-
         <div className="flex justify-between items-center h-16">
-
           {/* Logo */}
           <div className="flex items-center gap-2">
-
             <div className="relative">
-
               <button
                 onClick={() => setOpenPerfil(!openPerfil)}
                 className="
@@ -43,11 +35,8 @@ function Navbar() {
                 +
               </button>
 
-
               {/* Menú Perfil */}
-
               {openPerfil && (
-
                 <div
                   className="
                     absolute
@@ -63,7 +52,6 @@ function Navbar() {
                     z-50
                   "
                 >
-
                   <Link
                     to="/perfil"
                     onClick={() => setOpenPerfil(false)}
@@ -94,31 +82,19 @@ function Navbar() {
                   >
                     🚪 Cerrar sesión
                   </button>
-
                 </div>
-
               )}
-
             </div>
 
             <div>
+              <h1 className="font-bold text-xl text-gray-800">AD MEDIC</h1>
 
-              <h1 className="font-bold text-xl text-gray-800">
-                AD MEDIC
-              </h1>
-
-              <p className="text-xs text-gray-500">
-                Equipos Médicos
-              </p>
-
+              <p className="text-xs text-gray-500">Equipos Médicos</p>
             </div>
-
           </div>
 
           {/* Menú PC */}
-
-          <div className="hidden md:flex gap-8">
-
+          <div className="hidden md:flex gap-8 items-center">
             <Link
               to="/"
               className="text-gray-700 hover:text-blue-600 font-medium transition"
@@ -126,12 +102,51 @@ function Navbar() {
               Inicio
             </Link>
 
-            <Link
-              to="/maquinas"
-              className="text-gray-700 hover:text-blue-600 font-medium transition"
-            >
-              Máquinas
-            </Link>
+            {/* Dropdown Máquinas */}
+            <div className="relative">
+              <button
+                onClick={() => setOpenMaquinas(!openMaquinas)}
+                className="text-gray-700 hover:text-blue-600 font-medium transition"
+              >
+                Máquinas ▼
+              </button>
+
+              {openMaquinas && (
+                <div className="absolute top-10 left-0 w-52 bg-white border border-gray-200 rounded-lg shadow-lg z-50">
+                  <Link
+                    to="/maquinas/bombas"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setOpenMaquinas(false)}
+                  >
+                    Bombas
+                  </Link>
+
+                  <Link
+                    to="/maquinas/poles"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setOpenMaquinas(false)}
+                  >
+                    Poles
+                  </Link>
+
+                  <Link
+                    to="/maquinas/fuente-poder"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setOpenMaquinas(false)}
+                  >
+                    Fuente de Poder
+                  </Link>
+
+                  <Link
+                    to="/maquinas/baterias"
+                    className="block px-4 py-3 text-gray-700 hover:bg-gray-100"
+                    onClick={() => setOpenMaquinas(false)}
+                  >
+                    Baterías
+                  </Link>
+                </div>
+              )}
+            </div>
 
             <Link
               to="/contacto"
@@ -139,16 +154,10 @@ function Navbar() {
             >
               Contacto
             </Link>
-
           </div>
 
           {/* Botón celular */}
-
-          <button
-            className="md:hidden"
-            onClick={() => setOpen(!open)}
-          >
-
+          <button className="md:hidden" onClick={() => setOpen(!open)}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="w-7 h-7 text-gray-700"
@@ -156,34 +165,21 @@ function Navbar() {
               viewBox="0 0 24 24"
               stroke="currentColor"
             >
-
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
                 strokeWidth={2}
-                d={
-                  open
-                    ? "M6 18L18 6M6 6l12 12"
-                    : "M4 6h16M4 12h16M4 18h16"
-                }
+                d={open ? "M6 18L18 6M6 6l12 12" : "M4 6h16M4 12h16M4 18h16"}
               />
-
             </svg>
-
           </button>
-
         </div>
-
       </div>
 
       {/* Menú celular */}
-
       {open && (
-
         <div className="md:hidden bg-white border-t">
-
           <div className="flex flex-col p-4 gap-4">
-
             <Link
               to="/"
               className="text-gray-700 hover:text-blue-600"
@@ -192,13 +188,51 @@ function Navbar() {
               Inicio
             </Link>
 
-            <Link
-              to="/maquinas"
-              className="text-gray-700 hover:text-blue-600"
-              onClick={() => setOpen(false)}
-            >
-              Máquinas
-            </Link>
+            {/* Máquinas móvil */}
+            <div>
+              <button
+                onClick={() => setOpenMaquinas(!openMaquinas)}
+                className="text-gray-700 hover:text-blue-600 w-full text-left"
+              >
+                Máquinas ▼
+              </button>
+
+              {openMaquinas && (
+                <div className="flex flex-col gap-2 pl-4 mt-2">
+                  <Link
+                    to="/maquinas/bombas"
+                    className="text-gray-600"
+                    onClick={() => setOpen(false)}
+                  >
+                    Bombas
+                  </Link>
+
+                  <Link
+                    to="/maquinas/poles"
+                    className="text-gray-600"
+                    onClick={() => setOpen(false)}
+                  >
+                    Poles
+                  </Link>
+
+                  <Link
+                    to="/maquinas/fuente-poder"
+                    className="text-gray-600"
+                    onClick={() => setOpen(false)}
+                  >
+                    Fuente de Poder
+                  </Link>
+
+                  <Link
+                    to="/maquinas/baterias"
+                    className="text-gray-600"
+                    onClick={() => setOpen(false)}
+                  >
+                    Baterías
+                  </Link>
+                </div>
+              )}
+            </div>
 
             <Link
               to="/contacto"
@@ -207,17 +241,11 @@ function Navbar() {
             >
               Contacto
             </Link>
-
           </div>
-
         </div>
-
       )}
-
     </nav>
-
   );
-
 }
 
 export default Navbar;

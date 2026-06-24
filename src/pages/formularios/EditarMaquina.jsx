@@ -136,7 +136,7 @@ export default function EditarMaquina() {
         confirmButtonColor: "#0891b2",
       });
 
-      navigate("/maquinas");
+      navigate("/maquinas/bombas");
     } catch (err) {
       console.log(err);
 
@@ -211,7 +211,7 @@ export default function EditarMaquina() {
       <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl p-6 md:p-10">
         <div className="flex items-center justify-between mb-8">
           <button
-            onClick={() => navigate("/maquinas")}
+            onClick={() => navigate("/maquinas/bombas")}
             className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shadow-md transition-all hover:scale-105"
           >
             <FaArrowLeft />
