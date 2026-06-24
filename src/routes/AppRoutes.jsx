@@ -9,7 +9,7 @@ import Perfil from "../pages/Perfil";
 import AgregarMaquina from "../pages/formularios/AgregarMaquina";
 import EditarMaquina from "../pages/formularios/EditarMaquina";
 import AgregarPole from "../pages/formularios/AgregarPole";
-/* import EditarPole from "../pages/formularios/EditarPole"; */
+import EditarPole from "../pages/formularios/EditarPole";
 
 function AppRoutes() {
   return (
@@ -72,7 +72,14 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
-
+      <Route
+        path="/editar-pole/:id"
+        element={
+          <ProtectedRoute>
+            <EditarPole />
+          </ProtectedRoute>
+        }
+      />
       <Route
         path="/perfil"
         element={
