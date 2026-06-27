@@ -23,6 +23,8 @@ export default function EditarMaquina() {
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
 
+  const [maquinaOriginal, setMaquinaOriginal] = useState(null); //Historial
+
   /* Obtener Maquina de la BD */
   useEffect(() => {
     const obtenerMaquina = async () => {
@@ -47,6 +49,8 @@ export default function EditarMaquina() {
       setActualizacion(data.actualizacion);
       setTsc(data.tsc);
       setEmpaque(data.empaque);
+      // Guardamos la máquina original
+      setMaquinaOriginal(data);
     };
 
     obtenerMaquina();
@@ -73,6 +77,8 @@ export default function EditarMaquina() {
   }, []);
 
   const actualizar = async () => {
+    const usuario = JSON.parse(localStorage.getItem("usuario")); // para Historial
+
     try {
       if (!nombre.trim()) {
         Swal.fire({
@@ -111,6 +117,85 @@ export default function EditarMaquina() {
           empaque,
         })
         .eq("id", id);
+
+      // Guardar el historial
+      if (!error && maquinaOriginal) {
+        const actividades = [];
+
+        if (!maquinaOriginal.recoleccion && recoleccion) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "Recolección",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (!maquinaOriginal.limpieza && limpieza) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "Limpieza",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (!maquinaOriginal.prueba_can && pruebaCan) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "Prueba CAN",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (!maquinaOriginal.reparacion && reparacion) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "Reparación",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (!maquinaOriginal.actualizacion && actualizacion) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "Actualización",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (!maquinaOriginal.tsc && tsc) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "TSC",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (!maquinaOriginal.empaque && empaque) {
+          actividades.push({
+            tabla: "maquinas",
+            registro_id: id,
+            actividad: "Empaque",
+            usuario_id: usuario.id,
+          });
+        }
+
+        if (actividades.length > 0) {
+          const { error: historialError } = await supabase
+            .from("historial_actividades")
+            .insert(actividades);
+
+          if (historialError) {
+            console.log(historialError);
+          }
+        }
+      }
+      // Fin Guardar el historial
 
       if (error) {
         console.log(error);
@@ -203,7 +288,7 @@ export default function EditarMaquina() {
       confirmButtonColor: "#0891b2",
     });
 
-    navigate("/maquinas");
+    navigate("/maquinas/bombas");
   };
 
   return (

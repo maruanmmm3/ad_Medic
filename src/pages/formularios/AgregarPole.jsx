@@ -17,24 +17,41 @@ export default function AgregarPole() {
 
   const [categoria, setCategoria] = useState("");
 
-  const guardar = async () => {
-    setLoading(true);
+  /* Obtener datos del usuario */
+  const usuario = JSON.parse(localStorage.getItem("usuario"));
 
-    if (!nombre || !serieLote) {
+  if (!usuario) {
+    Swal.fire({
+      icon: "error",
+      title: "Sesión expirada",
+      text: "Debes iniciar sesión nuevamente.",
+    });
+
+    setLoading(false);
+    return;
+  }
+  /* Fin obtener datos del usuario */
+
+  const guardar = async () => {
+    if (!nombre || !serieLote || !categoria) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
         text: "Debes completar todos los campos",
         confirmButtonColor: "#0891b2",
       });
-
       return;
     }
+
+    setLoading(true);
 
     const { error } = await supabase.from("poles").insert([
       {
         nombre,
         serie_lote: serieLote,
+        categoria_id: Number(categoria),
+        usuario_id: usuario.id, // Asignar el ID del usuario actual
+
         recoleccion: false,
         recuperacion: false,
         base: false,
@@ -50,9 +67,10 @@ export default function AgregarPole() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo registrar la pole",
+        text: error.message,
       });
 
+      setLoading(false);
       return;
     }
 
@@ -68,7 +86,7 @@ export default function AgregarPole() {
 
     navigate("/maquinas/poles", {
       state: {
-        mensaje: "Máquina registrada correctamente",
+        mensaje: "Pole registrada correctamente",
       },
     });
   };

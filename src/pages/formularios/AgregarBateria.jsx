@@ -2,20 +2,16 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
+import { FaBatteryHalf, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 
-export default function AgregarMaquina() {
+export default function AgregarBateria() {
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
-
   const [serieLote, setSerieLote] = useState("");
-
-  const [loading, setLoading] = useState(false);
-
-  const [categorias, setCategorias] = useState([]);
-
   const [categoria, setCategoria] = useState("");
+  const [categorias, setCategorias] = useState([]);
+  const [loading, setLoading] = useState(false);
 
   /* Obtener datos del usuario */
   const usuario = JSON.parse(localStorage.getItem("usuario"));
@@ -33,32 +29,27 @@ export default function AgregarMaquina() {
   /* Fin obtener datos del usuario */
 
   const guardar = async () => {
-    setLoading(true);
-
-    if (!nombre || !serieLote) {
+    if (!nombre || !serieLote || !categoria) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
         text: "Debes completar todos los campos",
         confirmButtonColor: "#0891b2",
       });
-
       return;
     }
 
-    const { error } = await supabase.from("maquinas").insert([
+    setLoading(true);
+
+    const { error } = await supabase.from("baterias").insert([
       {
         nombre,
         serie_lote: serieLote,
-        categoria_id: categoria,
+        categoria_id: Number(categoria),
         usuario_id: usuario.id, // Asignar el ID del usuario actual
-        recoleccion: false,
-        limpieza: false,
-        prueba_can: false,
-        reparacion: false,
-        actualizacion: false,
-        tsc: false,
-        empaque: false,
+
+        mantenimiento: false,
+        prueba: false,
       },
     ]);
 
@@ -68,15 +59,16 @@ export default function AgregarMaquina() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo registrar la máquina",
+        text: error.message,
       });
 
+      setLoading(false);
       return;
     }
 
     Swal.fire({
       icon: "success",
-      title: "🩺 Máquina registrada",
+      title: "🔋 Batería registrada",
       text: "Se guardó correctamente",
       timer: 2000,
       showConfirmButton: false,
@@ -84,9 +76,9 @@ export default function AgregarMaquina() {
 
     setLoading(false);
 
-    navigate("/maquinas/bombas", {
+    navigate("/maquinas/baterias", {
       state: {
-        mensaje: "Máquina registrada correctamente",
+        mensaje: "Batería registrada correctamente",
       },
     });
   };
@@ -95,7 +87,7 @@ export default function AgregarMaquina() {
     const { data, error } = await supabase
       .from("categorias")
       .select("id, nombre")
-      .eq("tipo", "Bomba")
+      .eq("tipo", "Bateria")
       .order("nombre", { ascending: true });
 
     if (error) {
@@ -104,7 +96,6 @@ export default function AgregarMaquina() {
     }
 
     setCategorias(data);
-    console.log(data);
   };
 
   useEffect(() => {
@@ -114,21 +105,20 @@ export default function AgregarMaquina() {
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-slate-100 to-cyan-100 p-4 md:p-8">
       {/* ENCABEZADO */}
-
       <div className="max-w-4xl mx-auto mb-8">
         <div className="flex justify-between items-center">
           <div className="flex items-center gap-4">
             <div className="bg-cyan-600 p-4 rounded-2xl shadow-lg">
-              <FaHeartbeat className="text-white text-3xl" />
+              <FaBatteryHalf className="text-white text-3xl" />
             </div>
 
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-                Registrar Máquina
+                Registrar Batería
               </h1>
 
               <p className="text-slate-500">
-                Agrega un nuevo equipo médico al sistema
+                Agrega una nueva batería al sistema
               </p>
             </div>
           </div>
@@ -144,45 +134,38 @@ export default function AgregarMaquina() {
       </div>
 
       {/* FORMULARIO */}
-
       <div className="max-w-4xl mx-auto">
         <div className="bg-white rounded-3xl shadow-2xl border border-slate-200 overflow-hidden">
           {/* CABECERA */}
-
           <div className="bg-cyan-600 p-6">
             <h2 className="text-white text-2xl font-bold">
               Información General
             </h2>
 
             <p className="text-cyan-100 mt-1">
-              Complete los datos del equipo médico
+              Complete los datos de la batería
             </p>
           </div>
 
           {/* CONTENIDO */}
-
           <div className="p-8">
             <div className="grid md:grid-cols-2 gap-8">
               {/* NOMBRE */}
-
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre de la Máquina
+                  Nombre de la Batería
                 </label>
 
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Ej: Monitor Multiparámetro"
-                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition"
-                  />
-                </div>
+                <input
+                  type="text"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  placeholder="Ej: Batería UPS APC"
+                  className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition"
+                />
               </div>
 
               {/* SERIE */}
-
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
                   Serie / Lote
@@ -195,33 +178,31 @@ export default function AgregarMaquina() {
                     type="text"
                     value={serieLote}
                     onChange={(e) => setSerieLote(e.target.value)}
-                    placeholder="Ej: SER-2026-001"
+                    placeholder="Ej: BAT-2026-001"
                     className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
                   />
                 </div>
               </div>
 
-              {/* CATEGORÍA */}
+              {/* CATEGORIA */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
                   Categoría
                 </label>
 
-                <div className="relative">
-                  <select
-                    value={categoria}
-                    onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
-                  >
-                    <option value="">Seleccione una categoría</option>
+                <select
+                  value={categoria}
+                  onChange={(e) => setCategoria(e.target.value)}
+                  className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                >
+                  <option value="">Seleccione una categoría</option>
 
-                    {categorias.map((cat) => (
-                      <option key={cat.id} value={cat.id}>
-                        {cat.nombre}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                  {categorias.map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.nombre}
+                    </option>
+                  ))}
+                </select>
               </div>
             </div>
 
@@ -233,7 +214,7 @@ export default function AgregarMaquina() {
 
               <div className="bg-cyan-50 border border-cyan-100 rounded-2xl p-6">
                 <p className="text-slate-600">
-                  Todos los procesos serán registrados inicialmente como:
+                  Los procesos de mantenimiento y prueba iniciarán como:
                 </p>
 
                 <div className="mt-4 inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full font-semibold">
@@ -243,7 +224,6 @@ export default function AgregarMaquina() {
             </div>
 
             {/* BOTONES */}
-
             <div className="flex justify-end gap-4 mt-10">
               <button
                 onClick={() => navigate(-1)}
@@ -258,7 +238,7 @@ export default function AgregarMaquina() {
                 className="flex items-center gap-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl shadow-lg transition"
               >
                 <FaSave />
-                {loading ? "Guardando..." : "Guardar Máquina"}
+                {loading ? "Guardando..." : "Guardar Batería"}
               </button>
             </div>
           </div>

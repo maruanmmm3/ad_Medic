@@ -5,31 +5,28 @@ import { FaArrowLeft, FaTrash } from "react-icons/fa";
 import EstadoCard from "../../components/EstadoCard";
 import Swal from "sweetalert2";
 
-export default function EditarPole() {
+export default function EditarBateria() {
   const { id } = useParams();
   const navigate = useNavigate();
+
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
   const [serieLote, setSerieLote] = useState("");
 
-  const [recoleccion, setRecoleccion] = useState(false);
-  const [recuperacion, setRecuperacion] = useState(false);
-  const [base, setBase] = useState(false);
-  const [pintura, setPintura] = useState(false);
-  const [limpieza, setLimpieza] = useState(false);
-  const [empaquetado, setEmpaquetado] = useState(false);
+  const [mantenimiento, setMantenimiento] = useState(false);
+  const [prueba, setPrueba] = useState(false);
 
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
 
-  const [poleOriginal, setPoleOriginal] = useState(null); //Historial
+  const [bateriaOriginal, setBateriaOriginal] = useState(null); //Historial
 
-  /* Obtener Pole de la BD */
+  /* Obtener batería */
   useEffect(() => {
-    const obtenerPole = async () => {
+    const obtenerBateria = async () => {
       const { data, error } = await supabase
-        .from("poles")
+        .from("baterias")
         .select("*")
         .eq("id", id)
         .single();
@@ -41,27 +38,23 @@ export default function EditarPole() {
 
       setNombre(data.nombre);
       setSerieLote(data.serie_lote);
-      setCategoria(data.categoria_id);
+      setCategoria(data.categoria_id ?? "");
 
-      setRecoleccion(data.recoleccion);
-      setRecuperacion(data.recuperacion);
-      setBase(data.base);
-      setPintura(data.pintura);
-      setLimpieza(data.limpieza);
-      setEmpaquetado(data.empaquetado);
-      setPoleOriginal(data); //Historial
+      setMantenimiento(data.mantenimiento);
+      setPrueba(data.prueba);
+      setBateriaOriginal(data); //Historial
     };
 
-    obtenerPole();
+    obtenerBateria();
   }, [id]);
 
-  /* Obtener Categorias de la BD */
+  /* Obtener categorías */
   useEffect(() => {
     const obtenerCategorias = async () => {
       const { data, error } = await supabase
         .from("categorias")
         .select("id, nombre")
-        .eq("tipo", "Pole")
+        .eq("tipo", "Bateria")
         .order("nombre", { ascending: true });
 
       if (error) {
@@ -76,15 +69,15 @@ export default function EditarPole() {
   }, []);
 
   const actualizar = async () => {
-    const usuario = JSON.parse(localStorage.getItem("usuario")); // para Historial
+    const usuario = JSON.parse(localStorage.getItem("usuario"));
+
     try {
       if (!nombre.trim()) {
         Swal.fire({
           icon: "warning",
           title: "Campo requerido",
-          text: "Ingrese el nombre de la máquina",
+          text: "Ingrese el nombre de la batería",
         });
-
         return;
       }
 
@@ -94,80 +87,43 @@ export default function EditarPole() {
           title: "Campo requerido",
           text: "Ingrese la serie o lote",
         });
-
         return;
       }
 
       setGuardando(true);
 
       const { error } = await supabase
-        .from("poles")
+        .from("baterias")
         .update({
           nombre,
           serie_lote: serieLote,
-          categoria_id: Number(categoria),
-          recoleccion,
-          recuperacion,
-          base,
-          pintura,
-          limpieza,
-          empaquetado,
+          categoria_id: categoria ? Number(categoria) : null,
+          mantenimiento,
+          prueba,
         })
         .eq("id", id);
 
-      if (!error && poleOriginal) {
+      /* =========================
+      HISTORIAL
+========================= */
+
+      if (!error && bateriaOriginal) {
         const actividades = [];
 
-        if (!poleOriginal.recoleccion && recoleccion) {
+        if (!bateriaOriginal.mantenimiento && mantenimiento) {
           actividades.push({
-            tabla: "poles",
+            tabla: "baterias",
             registro_id: Number(id),
-            actividad: "Recolección",
+            actividad: "Mantenimiento",
             usuario_id: usuario.id,
           });
         }
 
-        if (!poleOriginal.recuperacion && recuperacion) {
+        if (!bateriaOriginal.prueba && prueba) {
           actividades.push({
-            tabla: "poles",
+            tabla: "baterias",
             registro_id: Number(id),
-            actividad: "Recuperación",
-            usuario_id: usuario.id,
-          });
-        }
-
-        if (!poleOriginal.base && base) {
-          actividades.push({
-            tabla: "poles",
-            registro_id: Number(id),
-            actividad: "Base",
-            usuario_id: usuario.id,
-          });
-        }
-
-        if (!poleOriginal.pintura && pintura) {
-          actividades.push({
-            tabla: "poles",
-            registro_id: Number(id),
-            actividad: "Pintura",
-            usuario_id: usuario.id,
-          });
-        }
-
-        if (!poleOriginal.limpieza && limpieza) {
-          actividades.push({
-            tabla: "poles",
-            registro_id: Number(id),
-            actividad: "Limpieza",
-            usuario_id: usuario.id,
-          });
-        }
-
-        if (!poleOriginal.empaquetado && empaquetado) {
-          actividades.push({
-            tabla: "poles",
-            registro_id: Number(id),
-            actividad: "Empaquetado",
+            actividad: "Prueba",
             usuario_id: usuario.id,
           });
         }
@@ -178,7 +134,7 @@ export default function EditarPole() {
             .insert(actividades);
 
           if (historialError) {
-            console.log(historialError);
+            console.log("Error historial:", historialError);
           }
         }
       }
@@ -188,9 +144,7 @@ export default function EditarPole() {
 
         Swal.fire({
           icon: "error",
-
           title: "Error",
-
           text: error.message,
         });
 
@@ -199,23 +153,18 @@ export default function EditarPole() {
 
       await Swal.fire({
         icon: "success",
-
-        title: "Actualizado",
-
-        text: "Pole actualizada correctamente",
-
+        title: "Actualizada",
+        text: "Batería actualizada correctamente",
         confirmButtonColor: "#0891b2",
       });
 
-      navigate("/maquinas/poles");
+      navigate("/maquinas/baterias");
     } catch (err) {
       console.log(err);
 
       Swal.fire({
         icon: "error",
-
         title: "Error inesperado",
-
         text: "Ocurrió un error al actualizar",
       });
     } finally {
@@ -225,40 +174,25 @@ export default function EditarPole() {
 
   const eliminar = async () => {
     const resultado = await Swal.fire({
-      title: "¿Eliminar pole?",
-
+      title: "¿Eliminar batería?",
       text: "Esta acción no se puede deshacer.",
-
       icon: "warning",
-
       showCancelButton: true,
-
       confirmButtonColor: "#dc2626",
-
       cancelButtonColor: "#64748b",
-
       confirmButtonText: "Sí, eliminar",
-
       cancelButtonText: "Cancelar",
     });
 
     if (!resultado.isConfirmed) return;
 
-    const { error } = await supabase
-
-      .from("poles")
-
-      .delete()
-
-      .eq("id", id);
+    const { error } = await supabase.from("baterias").delete().eq("id", id);
 
     if (error) {
       Swal.fire({
         icon: "error",
-
         title: "Error",
-
-        text: "No se pudo eliminar la máquina",
+        text: "No se pudo eliminar la batería",
       });
 
       return;
@@ -266,15 +200,12 @@ export default function EditarPole() {
 
     await Swal.fire({
       icon: "success",
-
       title: "Eliminada",
-
-      text: "La pole fue eliminada correctamente",
-
+      text: "La batería fue eliminada correctamente",
       confirmButtonColor: "#0891b2",
     });
 
-    navigate("/poles");
+    navigate("/maquinas/baterias");
   };
 
   return (
@@ -282,59 +213,36 @@ export default function EditarPole() {
       <div className="max-w-5xl mx-auto bg-white rounded-3xl shadow-xl p-6 md:p-10">
         <div className="flex items-center justify-between mb-8">
           <button
-            onClick={() => navigate("/maquinas/poles")}
+            onClick={() => navigate("/maquinas/baterias")}
             className="flex items-center gap-3 px-5 py-3 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-semibold shadow-md transition-all hover:scale-105"
           >
             <FaArrowLeft />
             Volver
           </button>
 
-          <h1 className="text-3xl font-bold text-slate-800">Editar Pole</h1>
-
-          {/* Espacio para equilibrar el diseño */}
+          <h1 className="text-3xl font-bold text-slate-800">Editar Batería</h1>
 
           <div className="w-28"></div>
         </div>
 
+        {/* DATOS */}
         <div className="space-y-5">
           <input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre"
-            className="
-        w-full
-        border-2
-        border-slate-200
-        rounded-2xl
-        px-5
-        py-4
-        text-lg
-        outline-none
-        focus:border-cyan-500
-        transition-all
-        "
+            className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-lg outline-none focus:border-cyan-500"
           />
 
           <input
             value={serieLote}
             onChange={(e) => setSerieLote(e.target.value)}
             placeholder="Serie / Lote"
-            className="
-        w-full
-        border-2
-        border-slate-200
-        rounded-2xl
-        px-5
-        py-4
-        text-lg
-        outline-none
-        focus:border-cyan-500
-        transition-all
-        "
+            className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-lg outline-none focus:border-cyan-500"
           />
         </div>
 
-        {/* CATEGORÍA */}
+        {/* CATEGORIA */}
         <div className="mt-5">
           <label className="block text-slate-700 font-semibold mb-2">
             Categoría
@@ -342,7 +250,7 @@ export default function EditarPole() {
 
           <select
             value={categoria}
-            onChange={(e) => setCategoria(Number(e.target.value))}
+            onChange={(e) => setCategoria(e.target.value)}
             className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
           >
             <option value="">Seleccione una categoría</option>
@@ -355,121 +263,35 @@ export default function EditarPole() {
           </select>
         </div>
 
+        {/* ESTADOS */}
         <h2 className="text-xl font-semibold text-slate-700 mt-10 mb-5">
-          Estado del mantenimiento
+          Estado del proceso
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
           <EstadoCard
-            titulo="Recolección"
-            activo={recoleccion}
-            setActivo={setRecoleccion}
+            titulo="Mantenimiento"
+            activo={mantenimiento}
+            setActivo={setMantenimiento}
           />
 
-          <EstadoCard
-            titulo="Recuperación"
-            activo={recuperacion}
-            setActivo={setRecuperacion}
-          />
-
-          <EstadoCard titulo="Base" activo={base} setActivo={setBase} />
-
-          <EstadoCard
-            titulo="Pintura"
-            activo={pintura}
-            setActivo={setPintura}
-          />
-
-          <EstadoCard
-            titulo="Limpieza"
-            activo={limpieza}
-            setActivo={setLimpieza}
-          />
-
-          <EstadoCard
-            titulo="Empaquetado"
-            activo={empaquetado}
-            setActivo={setEmpaquetado}
-          />
+          <EstadoCard titulo="Prueba" activo={prueba} setActivo={setPrueba} />
         </div>
 
+        {/* BOTONES */}
         <div className="mt-10 flex flex-col sm:flex-row gap-4 justify-end">
-          {/* Eliminar */}
           <button
             onClick={eliminar}
-            className="
-
-    w-full
-
-    sm:w-auto
-
-    flex
-
-    items-center
-
-    justify-center
-
-    gap-3
-
-    bg-red-600
-
-    hover:bg-red-700
-
-    text-white
-
-    font-semibold
-
-    px-8
-
-    py-4
-
-    rounded-2xl
-
-    shadow-lg
-
-    transition-all
-
-    hover:scale-105
-
-    "
+            className="w-full sm:w-auto flex items-center justify-center gap-3 bg-red-600 hover:bg-red-700 text-white font-semibold px-8 py-4 rounded-2xl shadow-lg transition-all"
           >
             <FaTrash />
             Eliminar
           </button>
 
-          {/* Guardar cambios */}
           <button
             onClick={actualizar}
             disabled={guardando}
-            className="
-
-    w-full
-
-    sm:w-auto
-
-    bg-cyan-600
-
-    hover:bg-cyan-700
-
-    disabled:bg-slate-400
-
-    text-white
-
-    font-semibold
-
-    px-10
-
-    py-4
-
-    rounded-2xl
-
-    shadow-lg
-
-    transition-all
-
-    hover:scale-105
-
-    "
+            className="w-full sm:w-auto bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white font-semibold px-10 py-4 rounded-2xl shadow-lg transition-all"
           >
             {guardando ? "Guardando..." : "Guardar cambios"}
           </button>
