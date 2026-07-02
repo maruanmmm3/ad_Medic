@@ -32,7 +32,13 @@ function Navbar() {
                   transition
                 "
               >
-                +
+                <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden shadow-md">
+                  <img
+                    src="https://yt3.googleusercontent.com/ytc/AIdro_kRH4uH9GTZGyp790ON-JYidM9c9Mm3SpO_s5hLvvQwhA=s900-c-k-c0x00ffffff-no-rj"
+                    alt="AD MEDIC"
+                    className="w-full h-full object-cover"
+                  />
+                </div>
               </button>
 
               {/* Menú Perfil */}
