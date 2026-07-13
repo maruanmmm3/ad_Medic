@@ -155,10 +155,10 @@ function Navbar() {
             </div>
 
             <Link
-              to="/contacto"
+              to="/actividades"
               className="text-gray-700 hover:text-blue-600 font-medium transition"
             >
-              Contacto
+              Mis Actividades
             </Link>
           </div>
 

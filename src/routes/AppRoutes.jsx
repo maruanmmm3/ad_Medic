@@ -16,6 +16,7 @@ import AgregarFuentesPoder from "../pages/formularios/AgregarFuentesPoder";
 import EditarFuentesPoder from "../pages/formularios/EditarFuentesPoder";
 import AgregarBateria from "../pages/formularios/AgregarBateria";
 import EditarBateria from "../pages/formularios/EditarBateria";
+import Actividades from "../pages/Actividades";
 
 function AppRoutes() {
   return (
@@ -139,6 +140,14 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <Perfil />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/actividades"
+        element={
+          <ProtectedRoute>
+            <Actividades />
           </ProtectedRoute>
         }
       />
