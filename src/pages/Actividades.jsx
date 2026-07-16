@@ -14,6 +14,12 @@ import {
 
 const PAGE_SIZE = 8;
 
+// Relaciones: qué campo (llave foránea) corresponde a qué tabla y qué columna mostrar como nombre
+const RELACIONES = {
+  categoria_id: { tabla: "categorias", campo: "nombre" },
+  usuario_id: { tabla: "usuarios", campo: "nombre" },
+};
+
 // Colores por tipo de acción (ajusta las claves a los valores reales que guardes en "actividad")
 const ACTIVIDAD_STYLES = {
   crear: "bg-emerald-50 text-emerald-700 border-emerald-200",
@@ -24,9 +30,12 @@ const ACTIVIDAD_STYLES = {
 
 function getActividadStyle(actividad = "") {
   const key = actividad.toLowerCase();
-  if (key.includes("crear") || key.includes("nuevo")) return ACTIVIDAD_STYLES.crear;
-  if (key.includes("actualiz") || key.includes("edit")) return ACTIVIDAD_STYLES.actualizar;
-  if (key.includes("elimin") || key.includes("borr")) return ACTIVIDAD_STYLES.eliminar;
+  if (key.includes("crear") || key.includes("nuevo"))
+    return ACTIVIDAD_STYLES.crear;
+  if (key.includes("actualiz") || key.includes("edit"))
+    return ACTIVIDAD_STYLES.actualizar;
+  if (key.includes("elimin") || key.includes("borr"))
+    return ACTIVIDAD_STYLES.eliminar;
   return ACTIVIDAD_STYLES.default;
 }
 
@@ -58,6 +67,7 @@ export default function Actividades() {
   const [modalError, setModalError] = useState(null);
   const [modalDatos, setModalDatos] = useState(null);
   const [modalTabla, setModalTabla] = useState("");
+  const [modalNombres, setModalNombres] = useState({});
 
   useEffect(() => {
     cargarActividades();
@@ -97,6 +107,7 @@ export default function Actividades() {
     setModalCargando(true);
     setModalError(null);
     setModalDatos(null);
+    setModalNombres({});
 
     try {
       if (!tabla || !registroId) {
@@ -117,6 +128,7 @@ export default function Actividades() {
       }
 
       setModalDatos(data);
+      await resolverRelaciones(data);
     } catch (err) {
       console.error(err);
       setModalError("El registro no existe o fue eliminado.");
@@ -125,11 +137,40 @@ export default function Actividades() {
     }
   }
 
+  async function resolverRelaciones(data) {
+    const nombres = {};
+
+    await Promise.all(
+      Object.keys(RELACIONES).map(async (campoFK) => {
+        const valorFK = data[campoFK];
+        if (valorFK === null || valorFK === undefined) return;
+
+        const { tabla, campo } = RELACIONES[campoFK];
+        try {
+          const { data: relacionado, error: relacionError } = await supabase
+            .from(tabla)
+            .select(campo)
+            .eq("id", valorFK)
+            .maybeSingle();
+
+          if (!relacionError && relacionado) {
+            nombres[campoFK] = relacionado[campo];
+          }
+        } catch (err) {
+          console.error(`No se pudo resolver ${campoFK}:`, err);
+        }
+      }),
+    );
+
+    setModalNombres(nombres);
+  }
+
   function cerrarModal() {
     setModalAbierto(false);
     setModalDatos(null);
     setModalError(null);
     setModalTabla("");
+    setModalNombres({});
   }
 
   const tablasDisponibles = useMemo(() => {
@@ -162,10 +203,13 @@ export default function Actividades() {
     });
   }, [registros, tablaFiltro, busqueda, fechaInicio, fechaFin]);
 
-  const totalPaginas = Math.max(1, Math.ceil(registrosFiltrados.length / PAGE_SIZE));
+  const totalPaginas = Math.max(
+    1,
+    Math.ceil(registrosFiltrados.length / PAGE_SIZE),
+  );
   const registrosPagina = registrosFiltrados.slice(
     (pagina - 1) * PAGE_SIZE,
-    pagina * PAGE_SIZE
+    pagina * PAGE_SIZE,
   );
 
   const actividadesHoy = registros.filter((r) => {
@@ -357,7 +401,7 @@ export default function Actividades() {
                       </td>
                       <td className="py-3 pr-4">
                         <span className="inline-block px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 text-xs font-medium">
-                          {r.tabla}
+                          {r.tabla === "maquinas" ? "bombas" : r.tabla}
                         </span>
                       </td>
                       <td className="py-3 pr-4">
@@ -366,14 +410,13 @@ export default function Actividades() {
                           className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-slate-200 text-slate-600 hover:bg-slate-50 hover:text-teal-600 hover:border-teal-200 text-xs font-medium"
                           title="Ver registro"
                         >
-                          <FaEye className="w-3.5 h-3.5" />
-                          #{r.registro_id}
+                          <FaEye className="w-3.5 h-3.5" />#{r.registro_id}
                         </button>
                       </td>
                       <td className="py-3 pr-4">
                         <span
                           className={`inline-block px-2 py-0.5 rounded-md border text-xs font-medium ${getActividadStyle(
-                            r.actividad
+                            r.actividad,
                           )}`}
                         >
                           {r.actividad}
@@ -388,7 +431,8 @@ export default function Actividades() {
             {/* Paginación */}
             <div className="flex items-center justify-between mt-5 text-sm text-slate-500">
               <span>
-                Página {pagina} de {totalPaginas} · {registrosFiltrados.length} resultados
+                Página {pagina} de {totalPaginas} · {registrosFiltrados.length}{" "}
+                resultados
               </span>
               <div className="flex gap-2">
                 <button
@@ -399,7 +443,9 @@ export default function Actividades() {
                   Anterior
                 </button>
                 <button
-                  onClick={() => setPagina((p) => Math.min(totalPaginas, p + 1))}
+                  onClick={() =>
+                    setPagina((p) => Math.min(totalPaginas, p + 1))
+                  }
                   disabled={pagina === totalPaginas}
                   className="px-3 py-1.5 rounded-lg border border-slate-200 disabled:opacity-40 disabled:cursor-not-allowed hover:bg-slate-50"
                 >
@@ -460,23 +506,32 @@ export default function Actividades() {
 
               {!modalCargando && !modalError && modalDatos && (
                 <dl className="divide-y divide-slate-100">
-                  {Object.entries(modalDatos).map(([campo, valor]) => (
-                    <div
-                      key={campo}
-                      className="grid grid-cols-3 gap-3 py-2.5 text-sm"
-                    >
-                      <dt className="text-slate-500 font-medium capitalize">
-                        {campo.replaceAll("_", " ")}
-                      </dt>
-                      <dd className="col-span-2 text-slate-800 break-words">
-                        {valor === null || valor === ""
-                          ? "—"
-                          : typeof valor === "object"
+                  {Object.entries(modalDatos).map(([campo, valor]) => {
+                    const tieneRelacion = Boolean(RELACIONES[campo]);
+                    const nombreRelacionado = modalNombres[campo];
+                    const valorMostrado = tieneRelacion
+                      ? (nombreRelacionado ??
+                        (valor === null ? "—" : `#${valor}`))
+                      : valor === null || valor === ""
+                        ? "—"
+                        : typeof valor === "object"
                           ? JSON.stringify(valor)
-                          : String(valor)}
-                      </dd>
-                    </div>
-                  ))}
+                          : String(valor);
+
+                    return (
+                      <div
+                        key={campo}
+                        className="grid grid-cols-3 gap-3 py-2.5 text-sm"
+                      >
+                        <dt className="text-slate-500 font-medium capitalize">
+                          {campo.replaceAll("_", " ")}
+                        </dt>
+                        <dd className="col-span-2 text-slate-800 break-words">
+                          {valorMostrado}
+                        </dd>
+                      </div>
+                    );
+                  })}
                 </dl>
               )}
             </div>

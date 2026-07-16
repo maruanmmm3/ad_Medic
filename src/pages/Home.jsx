@@ -1,6 +1,9 @@
 import Navbar from "../components/Navbar";
 import GraficoBarra from "../components/GraficoBarra";
-import GraficoCircular from "../components/GraficoCircular";
+import GraficoCircularBomba from "../components/GraficoCircularBomba";
+import GraficoCircularPoles from "../components/GraficoCircularPoles";
+import GraficoCircularFuentePoder from "../components/GraficoCircularFuentePoder";
+import GraficoCircularBaterias from "../components/GraficoCircularBaterias";
 import GraficoUsuarios from "../components/GraficoUsuarios";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
@@ -166,17 +169,42 @@ export default function Home() {
 
           <div className="bg-white rounded-3xl shadow-lg p-6">
             <h2 className="text-xl font-bold text-slate-700 mb-5">
-              Distribución
-            </h2>
-
-            <GraficoCircular />
-          </div>
-          <div className="bg-white rounded-3xl shadow-lg p-6">
-            <h2 className="text-xl font-bold text-slate-700 mb-5">
               Distribución por Usuario
             </h2>
 
             <GraficoUsuarios />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-slate-700 mb-5">
+              Distribución por Estados
+            </h2>
+
+            <GraficoCircularBomba />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-slate-700 mb-5">
+              Distribución por Estados
+            </h2>
+
+            <GraficoCircularPoles />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-slate-700 mb-5">
+              Distribución por Estados
+            </h2>
+
+            <GraficoCircularFuentePoder />
+          </div>
+
+          <div className="bg-white rounded-3xl shadow-lg p-6">
+            <h2 className="text-xl font-bold text-slate-700 mb-5">
+              Distribución por Estados
+            </h2>
+
+            <GraficoCircularBaterias />
           </div>
         </div>
       </div>

@@ -10,9 +10,17 @@ import {
   ResponsiveContainer,
 } from "recharts";
 
-const COLORS = ["#10b981", "#ef4444", "#f59e0b", "#3b82f6", "#8b5cf6", "#f97316", "#14b8a6"];
+const COLORS = [
+  "#10b981",
+  "#ef4444",
+  "#f59e0b",
+  "#3b82f6",
+  "#8b5cf6",
+  "#f97316",
+  "#14b8a6",
+];
 
-export default function GraficoCircular() {
+export default function GraficoCircularBaterias() {
   const [data, setData] = useState([]);
 
   useEffect(() => {
@@ -20,38 +28,36 @@ export default function GraficoCircular() {
   }, []);
 
   const obtenerDatos = async () => {
-    const { data: maquinas, error } = await supabase
-      .from("maquinas")
-      .select("recoleccion, limpieza, prueba_can, reparacion, actualizacion, tsc, empaque");
+    const { data: baterias, error } = await supabase
+      .from("baterias")
+      .select("mantenimiento, prueba");
 
     if (error) {
       console.log(error);
       return;
     }
 
-    const conteo = {
-      Recolección: 0,
-      Limpieza: 0,
-      "Prueba Can": 0,
-      Reparación: 0,
-      Actualización: 0,
-      TSC: 0,
-      Empaque: 0,
-    };
+    const etapas = [
+      { campo: "mantenimiento", nombre: "Mantenimiento" },
+      { campo: "prueba", nombre: "Prueba" },
+    ];
 
-    maquinas.forEach((m) => {
-      if (m.recoleccion) conteo["Recolección"]++;
-      if (m.limpieza) conteo["Limpieza"]++;
-      if (m.prueba_can) conteo["Prueba Can"]++;
-      if (m.reparacion) conteo["Reparación"]++;
-      if (m.actualizacion) conteo["Actualización"]++;
-      if (m.tsc) conteo["TSC"]++;
-      if (m.empaque) conteo["Empaque"]++;
+    const conteo = {};
+
+    etapas.forEach((e) => (conteo[e.nombre] = 0));
+
+    baterias.forEach((b) => {
+      for (let i = etapas.length - 1; i >= 0; i--) {
+        if (b[etapas[i].campo]) {
+          conteo[etapas[i].nombre]++;
+          break; // Solo cuenta una vez
+        }
+      }
     });
 
-    const formatted = Object.keys(conteo).map((key) => ({
-      name: key,
-      value: conteo[key],
+    const formatted = etapas.map((e) => ({
+      name: e.nombre,
+      value: conteo[e.nombre],
     }));
 
     setData(formatted);
@@ -60,7 +66,7 @@ export default function GraficoCircular() {
   return (
     <div className="bg-white p-6 rounded-3xl shadow-lg">
       <h2 className="text-xl font-bold mb-4 text-slate-700">
-        Estado de Máquinas
+        Estado de Baterias
       </h2>
 
       <ResponsiveContainer width="100%" height={350}>
