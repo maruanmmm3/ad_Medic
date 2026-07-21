@@ -28,9 +28,28 @@ export default function GraficoCircularFuentePoder() {
   }, []);
 
   const obtenerDatos = async () => {
+    const hoy = new Date();
+
+    // Obtener el lunes de la semana
+    const diaSemana = hoy.getDay(); // 0 = Domingo
+    const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana;
+
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diferencia);
+    lunes.setHours(0, 0, 0, 0);
+
+    // Obtener el domingo de la semana
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    domingo.setHours(23, 59, 59, 999);
+
     const { data: fuentes, error } = await supabase
       .from("fuentespoder")
-      .select("recoleccion, reparacion, limpieza, etiqueta, empaquetado");
+      .select(
+        "recoleccion, reparacion, limpieza, etiqueta, empaquetado, creado_en",
+      )
+      .gte("creado_en", lunes.toISOString())
+      .lte("creado_en", domingo.toISOString());
 
     if (error) {
       console.log(error);
@@ -53,7 +72,7 @@ export default function GraficoCircularFuentePoder() {
       for (let i = etapas.length - 1; i >= 0; i--) {
         if (f[etapas[i].campo]) {
           conteo[etapas[i].nombre]++;
-          break; // Solo cuenta una vez, en la última etapa alcanzada
+          break; // Cuenta solo la última etapa alcanzada
         }
       }
     });
@@ -67,7 +86,7 @@ export default function GraficoCircularFuentePoder() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-lg">
+    <div id="grafico-fuente" className="bg-white p-6 rounded-3xl shadow-lg">
       <h2 className="text-xl font-bold mb-4 text-slate-700">
         Estado de Fuente Poder
       </h2>

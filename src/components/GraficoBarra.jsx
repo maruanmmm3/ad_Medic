@@ -109,14 +109,16 @@ export default function Grafico() {
   }, []);
 
   return (
-    <ResponsiveContainer width="100%" height={350}>
-      <BarChart data={data}>
-        <CartesianGrid strokeDasharray="3 3" />
-        <XAxis dataKey="dia" />
-        <YAxis />
-        <Tooltip />
-        <Bar dataKey="cantidad" radius={[12, 12, 0, 0]} fill="#0891b2" />
-      </BarChart>
-    </ResponsiveContainer>
+    <div id="grafico-barra">
+      <ResponsiveContainer width="100%" height={350}>
+        <BarChart data={data}>
+          <CartesianGrid strokeDasharray="3 3" />
+          <XAxis dataKey="dia" />
+          <YAxis />
+          <Tooltip />
+          <Bar dataKey="cantidad" radius={[12, 12, 0, 0]} fill="#0891b2" />
+        </BarChart>
+      </ResponsiveContainer>
+    </div>
   );
 }

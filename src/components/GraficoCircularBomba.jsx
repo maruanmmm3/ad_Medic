@@ -28,11 +28,28 @@ export default function GraficoCircularBomba() {
   }, []);
 
   const obtenerDatos = async () => {
+    const hoy = new Date();
+
+    // Lunes de la semana
+    const diaSemana = hoy.getDay();
+    const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana;
+
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diferencia);
+    lunes.setHours(0, 0, 0, 0);
+
+    // Domingo de la semana
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    domingo.setHours(23, 59, 59, 999);
+
     const { data: maquinas, error } = await supabase
       .from("maquinas")
       .select(
-        "recoleccion, limpieza, prueba_can, reparacion, actualizacion, tsc, empaque",
-      );
+        "recoleccion, limpieza, prueba_can, reparacion, actualizacion, tsc, empaque, creado_en",
+      )
+      .gte("creado_en", lunes.toISOString())
+      .lte("creado_en", domingo.toISOString());
 
     if (error) {
       console.log(error);
@@ -57,7 +74,7 @@ export default function GraficoCircularBomba() {
       for (let i = etapas.length - 1; i >= 0; i--) {
         if (m[etapas[i].campo]) {
           conteo[etapas[i].nombre]++;
-          break; // solo se cuenta una vez
+          break;
         }
       }
     });
@@ -71,7 +88,7 @@ export default function GraficoCircularBomba() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-lg">
+    <div id="grafico-bomba" className="bg-white p-6 rounded-3xl shadow-lg">
       <h2 className="text-xl font-bold mb-4 text-slate-700">
         Estado de Bombas
       </h2>

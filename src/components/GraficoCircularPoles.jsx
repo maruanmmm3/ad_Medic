@@ -28,11 +28,28 @@ export default function GraficoCircularPoles() {
   }, []);
 
   const obtenerDatos = async () => {
+    const hoy = new Date();
+
+    // Lunes de la semana
+    const diaSemana = hoy.getDay();
+    const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana;
+
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diferencia);
+    lunes.setHours(0, 0, 0, 0);
+
+    // Domingo de la semana
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    domingo.setHours(23, 59, 59, 999);
+
     const { data: poles, error } = await supabase
       .from("poles")
       .select(
-        "recoleccion, recuperacion, base, pintura, limpieza, empaquetado",
-      );
+        "recoleccion, recuperacion, base, pintura, limpieza, empaquetado, creado_en",
+      )
+      .gte("creado_en", lunes.toISOString())
+      .lte("creado_en", domingo.toISOString());
 
     if (error) {
       console.log(error);
@@ -56,7 +73,7 @@ export default function GraficoCircularPoles() {
       for (let i = etapas.length - 1; i >= 0; i--) {
         if (p[etapas[i].campo]) {
           conteo[etapas[i].nombre]++;
-          break;
+          break; // Solo cuenta la última etapa alcanzada
         }
       }
     });
@@ -70,7 +87,7 @@ export default function GraficoCircularPoles() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-lg">
+    <div id="grafico-pole" className="bg-white p-6 rounded-3xl shadow-lg">
       <h2 className="text-xl font-bold mb-4 text-slate-700">Estado de Pole</h2>
 
       <ResponsiveContainer width="100%" height={350}>

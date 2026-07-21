@@ -28,9 +28,26 @@ export default function GraficoCircularBaterias() {
   }, []);
 
   const obtenerDatos = async () => {
+    const hoy = new Date();
+
+    // Lunes de la semana actual
+    const diaSemana = hoy.getDay(); // 0 = Domingo
+    const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana;
+
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() + diferencia);
+    lunes.setHours(0, 0, 0, 0);
+
+    // Domingo de la semana actual
+    const domingo = new Date(lunes);
+    domingo.setDate(lunes.getDate() + 6);
+    domingo.setHours(23, 59, 59, 999);
+
     const { data: baterias, error } = await supabase
       .from("baterias")
-      .select("mantenimiento, prueba");
+      .select("mantenimiento, prueba, creado_en")
+      .gte("creado_en", lunes.toISOString())
+      .lte("creado_en", domingo.toISOString());
 
     if (error) {
       console.log(error);
@@ -50,7 +67,7 @@ export default function GraficoCircularBaterias() {
       for (let i = etapas.length - 1; i >= 0; i--) {
         if (b[etapas[i].campo]) {
           conteo[etapas[i].nombre]++;
-          break; // Solo cuenta una vez
+          break; // Solo cuenta la última etapa alcanzada
         }
       }
     });
@@ -64,7 +81,7 @@ export default function GraficoCircularBaterias() {
   };
 
   return (
-    <div className="bg-white p-6 rounded-3xl shadow-lg">
+    <div id="grafico-bateria" className="bg-white p-6 rounded-3xl shadow-lg">
       <h2 className="text-xl font-bold mb-4 text-slate-700">
         Estado de Baterias
       </h2>
