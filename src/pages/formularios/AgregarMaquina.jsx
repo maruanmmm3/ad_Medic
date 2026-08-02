@@ -8,33 +8,38 @@ export default function AgregarMaquina() {
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
-
   const [serieLote, setSerieLote] = useState("");
-
   const [loading, setLoading] = useState(false);
-
   const [categorias, setCategorias] = useState([]);
-
   const [categoria, setCategoria] = useState("");
+  const [usuarioId, setUsuarioId] = useState(null);
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
 
-  /* Obtener datos del usuario */
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  /* Obtener datos del usuario logueado con Supabase Auth */
+  useEffect(() => {
+    const verificarSesion = async () => {
+      const { data, error } = await supabase.auth.getSession();
 
-  if (!usuario) {
-    Swal.fire({
-      icon: "error",
-      title: "Sesión expirada",
-      text: "Debes iniciar sesión nuevamente.",
-    });
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
 
-    setLoading(false);
-    return;
-  }
+      setUsuarioId(data.session.user.id);
+      setVerificandoSesion(false);
+    };
+
+    verificarSesion();
+  }, [navigate]);
   /* Fin obtener datos del usuario */
 
   const guardar = async () => {
-    setLoading(true);
-
     if (!nombre || !serieLote) {
       Swal.fire({
         icon: "warning",
@@ -46,12 +51,23 @@ export default function AgregarMaquina() {
       return;
     }
 
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
+
+    setLoading(true);
+
     const { error } = await supabase.from("maquinas").insert([
       {
         nombre,
         serie_lote: serieLote,
         categoria_id: categoria,
-        usuario_id: usuario.id, // Asignar el ID del usuario actual
+        usuario_id: usuarioId, // Asignar el ID del usuario actual
         recoleccion: false,
         limpieza: false,
         prueba_can: false,
@@ -61,6 +77,8 @@ export default function AgregarMaquina() {
         empaque: false,
       },
     ]);
+
+    setLoading(false);
 
     if (error) {
       console.log(error);
@@ -81,8 +99,6 @@ export default function AgregarMaquina() {
       timer: 2000,
       showConfirmButton: false,
     });
-
-    setLoading(false);
 
     navigate("/maquinas/bombas", {
       state: {
@@ -111,6 +127,14 @@ export default function AgregarMaquina() {
     obtenerCategorias();
   }, []);
 
+  if (verificandoSesion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-slate-100 to-cyan-100 p-4 md:p-8">
       {/* ENCABEZADO */}
@@ -124,7 +148,7 @@ export default function AgregarMaquina() {
 
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-                Registrar Máquina
+                Registrar Bomba
               </h1>
 
               <p className="text-slate-500">
@@ -134,7 +158,7 @@ export default function AgregarMaquina() {
           </div>
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("/maquinas/bombas")}
             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl shadow-lg transition"
           >
             <FaArrowLeft />
@@ -171,13 +195,15 @@ export default function AgregarMaquina() {
                 </label>
 
                 <div className="relative">
-                  <input
-                    type="text"
+                  <select
                     value={nombre}
                     onChange={(e) => setNombre(e.target.value)}
-                    placeholder="Ej: Monitor Multiparámetro"
-                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition"
-                  />
+                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  >
+                    <option value="">Seleccione un nombre</option>
+                    <option value="Space">Space</option>
+                    <option value="Space Plus">Space Plus</option>
+                  </select>
                 </div>
               </div>
 

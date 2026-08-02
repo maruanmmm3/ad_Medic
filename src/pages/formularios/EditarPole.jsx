@@ -25,6 +25,30 @@ export default function EditarPole() {
 
   const [poleOriginal, setPoleOriginal] = useState(null); //Historial
 
+  const [usuarioId, setUsuarioId] = useState(null);
+
+  /* Obtener el usuario logueado con Supabase Auth (para el historial) */
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
+
+      setUsuarioId(data.session.user.id);
+    };
+
+    obtenerUsuario();
+  }, [navigate]);
+
   /* Obtener Pole de la BD */
   useEffect(() => {
     const obtenerPole = async () => {
@@ -76,7 +100,15 @@ export default function EditarPole() {
   }, []);
 
   const actualizar = async () => {
-    const usuario = JSON.parse(localStorage.getItem("usuario")); // para Historial
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
+
     try {
       if (!nombre.trim()) {
         Swal.fire({
@@ -123,7 +155,7 @@ export default function EditarPole() {
             tabla: "poles",
             registro_id: Number(id),
             actividad: "Recolección",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -132,7 +164,7 @@ export default function EditarPole() {
             tabla: "poles",
             registro_id: Number(id),
             actividad: "Recuperación",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -141,7 +173,7 @@ export default function EditarPole() {
             tabla: "poles",
             registro_id: Number(id),
             actividad: "Base",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -150,7 +182,7 @@ export default function EditarPole() {
             tabla: "poles",
             registro_id: Number(id),
             actividad: "Pintura",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -159,7 +191,7 @@ export default function EditarPole() {
             tabla: "poles",
             registro_id: Number(id),
             actividad: "Limpieza",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -168,7 +200,7 @@ export default function EditarPole() {
             tabla: "poles",
             registro_id: Number(id),
             actividad: "Empaquetado",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 

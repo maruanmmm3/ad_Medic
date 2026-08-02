@@ -5,84 +5,90 @@ import { supabase } from "../lib/supabase";
 export default function Login() {
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState("");
-
+  const [email, setEmail] = useState(""); // solo se usa al registrarse
+  const [usuario, setUsuario] = useState(""); // nombre_usuario, usado para login y registro
   const [password, setPassword] = useState("");
-
-  const [loading, setLoading] = useState(false);
-
   const [nombre, setNombre] = useState("");
-
+  const [loading, setLoading] = useState(false);
   const [esRegistro, setEsRegistro] = useState(false);
 
   const iniciarSesion = async (e) => {
     e.preventDefault();
 
+    if (!usuario || !password) {
+      alert("Completa todos los campos");
+      return;
+    }
+
     setLoading(true);
 
-    const { data, error } = await supabase
+    // 1. Buscamos el email asociado a ese nombre_usuario mediante la función RPC
+    const { data: emailEncontrado, error: errorBusqueda } = await supabase.rpc(
+      "get_email_by_username",
+      { p_nombre_usuario: usuario },
+    );
 
-      .from("usuarios")
+    if (errorBusqueda || !emailEncontrado) {
+      setLoading(false);
+      alert("Usuario o contraseña incorrectos");
+      return;
+    }
 
-      .select("*")
-
-      .eq("email", email)
-
-      .eq("password", password)
-
-      .single();
+    // 2. Iniciamos sesión con ese email + la contraseña ingresada
+    const { data, error } = await supabase.auth.signInWithPassword({
+      email: emailEncontrado,
+      password,
+    });
 
     setLoading(false);
 
-    if (error || !data) {
-      alert("Correo o contraseña incorrectos");
-
+    if (error) {
+      alert("Usuario o contraseña incorrectos");
       return;
     }
 
-    // Guardar sesión localmente
-    localStorage.setItem("usuario", JSON.stringify(data));
-
+    // Supabase ya guarda la sesión sola (localStorage/cookies internos).
     navigate("/home");
   };
 
-  const registrar = async () => {
-    if (!nombre || !email || !password) {
-      alert("Completa todos los campos");
+  const registrar = async (e) => {
+    e.preventDefault();
 
+    if (!nombre || !usuario || !email || !password) {
+      alert("Completa todos los campos");
       return;
     }
 
     setLoading(true);
 
-    const { error } = await supabase
-
-      .from("usuarios")
-
-      .insert([
-        {
-          nombre,
-          email,
-          password,
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          nombre, // esto llega a raw_user_meta_data, que usa el trigger
+          nombre_usuario: usuario,
         },
-      ]);
+      },
+    });
 
     setLoading(false);
 
     if (error) {
       alert(error.message);
-
       return;
     }
 
-    alert("Usuario registrado correctamente");
+    // Si tienes confirmación de email activada en Supabase, el usuario
+    // debe confirmar su correo antes de poder iniciar sesión.
+    alert(
+      "Usuario registrado correctamente. Revisa tu correo si se requiere confirmación.",
+    );
 
     setNombre("");
-
+    setUsuario("");
     setEmail("");
-
     setPassword("");
-
     setEsRegistro(false);
   };
 
@@ -90,7 +96,6 @@ export default function Login() {
     <div className="min-h-screen bg-gradient-to-br from-blue-50 to-cyan-100 flex items-center justify-center px-4">
       <div className="bg-white w-full max-w-md rounded-3xl shadow-2xl p-8">
         {/* Logo */}
-
         <div className="flex flex-col items-center mb-8">
           <div className="w-20 h-20 rounded-full bg-blue-600 flex items-center justify-center overflow-hidden shadow-lg">
             <img
@@ -107,7 +112,10 @@ export default function Login() {
           </p>
         </div>
 
-        <form onSubmit={iniciarSesion} className="space-y-5">
+        <form
+          onSubmit={esRegistro ? registrar : iniciarSesion}
+          className="space-y-5"
+        >
           {esRegistro && (
             <div>
               <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -135,18 +143,17 @@ export default function Login() {
             </div>
           )}
 
-          {/* Correo */}
-
+          {/* Usuario (siempre visible: se usa para registro y para login) */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
-              Correo electrónico
+              Usuario
             </label>
 
             <input
-              type="email"
-              placeholder="ejemplo@correo.com"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              type="text"
+              placeholder="Ingresa tu usuario"
+              value={usuario}
+              onChange={(e) => setUsuario(e.target.value)}
               className="
               w-full
               px-4
@@ -163,8 +170,36 @@ export default function Login() {
             />
           </div>
 
-          {/* Contraseña */}
+          {/* Correo (solo al registrarse) */}
+          {esRegistro && (
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Correo electrónico
+              </label>
 
+              <input
+                type="email"
+                placeholder="ejemplo@correo.com"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                className="
+              w-full
+              px-4
+              py-3
+              border
+              border-gray-300
+              rounded-xl
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-500
+              focus:border-blue-500
+              transition
+            "
+              />
+            </div>
+          )}
+
+          {/* Contraseña */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Contraseña
@@ -192,13 +227,10 @@ export default function Login() {
           </div>
 
           {/* Botón ingresar */}
-
-          {esRegistro ? (
-            <button
-              type="button"
-              onClick={registrar}
-              disabled={loading}
-              className="
+          <button
+            type="submit"
+            disabled={loading}
+            className="
       w-full
       bg-blue-600
       hover:bg-blue-700
@@ -209,32 +241,18 @@ export default function Login() {
       shadow-lg
       transition
     "
-            >
-              {loading ? "Creando cuenta..." : "Crear cuenta"}
-            </button>
-          ) : (
-            <button
-              type="submit"
-              disabled={loading}
-              className="
-      w-full
-      bg-blue-600
-      hover:bg-blue-700
-      text-white
-      py-3
-      rounded-xl
-      font-semibold
-      shadow-lg
-      transition
-    "
-            >
-              {loading ? "Ingresando..." : "Ingresar"}
-            </button>
-          )}
+          >
+            {loading
+              ? esRegistro
+                ? "Creando cuenta..."
+                : "Ingresando..."
+              : esRegistro
+                ? "Crear cuenta"
+                : "Ingresar"}
+          </button>
         </form>
 
         {/* Pie */}
-
         <div className="text-center mt-5">
           {esRegistro ? (
             <button

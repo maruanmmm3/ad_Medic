@@ -15,8 +15,11 @@ import EditarPole from "../pages/formularios/EditarPole";
 import AgregarFuentesPoder from "../pages/formularios/AgregarFuentesPoder";
 import EditarFuentesPoder from "../pages/formularios/EditarFuentesPoder";
 import AgregarBateria from "../pages/formularios/AgregarBateria";
+import AgregarAlmacenados from "../pages/formularios/AgregarAlmacenados";
 import EditarBateria from "../pages/formularios/EditarBateria";
 import Actividades from "../pages/Actividades";
+import Almacenados from "../pages/Almacenados";
+import Reportes from "../pages/Reportes";
 
 function AppRoutes() {
   return (
@@ -132,6 +135,30 @@ function AppRoutes() {
         element={
           <ProtectedRoute>
             <EditarBateria />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/maquinas/almacenados"
+        element={
+          <ProtectedRoute>
+            <Almacenados />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/agregar-almacenados"
+        element={
+          <ProtectedRoute>
+            <AgregarAlmacenados />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/reportes"
+        element={
+          <ProtectedRoute>
+            <Reportes />
           </ProtectedRoute>
         }
       />

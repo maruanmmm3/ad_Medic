@@ -1,18 +1,11 @@
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate, useLocation } from "react-router-dom";
-import {
-  FaHeartbeat,
-  FaCheckCircle,
-  FaTimesCircle,
-  FaBarcode,
-  FaArrowLeft,
-  FaPlus,
-} from "react-icons/fa";
+import { FaBoxOpen, FaArrowLeft, FaPlus } from "react-icons/fa";
 import Swal from "sweetalert2";
 
-export default function Bombas() {
-  const [bombas, setBombas] = useState([]);
+export default function Almacenados() {
+  const [almacenados, setAlmacenados] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
@@ -28,9 +21,13 @@ export default function Bombas() {
     const from = (pagina - 1) * pageSize;
     const to = from + pageSize - 1;
 
+    // El join con "categorias" asume que existe una foreign key
+    // almacenados.categoria_id -> categorias.id en Supabase.
+    // Si el nombre de la tabla/columna de categorías es distinto,
+    // ajusta "categorias(nombre)" según corresponda.
     const { data, error, count } = await supabase
-      .from("maquinas")
-      .select("*", { count: "exact" })
+      .from("almacenados")
+      .select("*, categorias(nombre)", { count: "exact" })
       .order("creado_en", { ascending: false })
       .range(from, to);
 
@@ -40,7 +37,7 @@ export default function Bombas() {
       return;
     }
 
-    setBombas(data);
+    setAlmacenados(data);
     setTotal(count || 0);
     setLoading(false);
   };
@@ -52,7 +49,7 @@ export default function Bombas() {
   useEffect(() => {
     if (location.state?.mensaje) {
       Swal.fire({
-        title: "🩺 Éxito",
+        title: "📦 Éxito",
         text: location.state.mensaje,
         icon: "success",
         confirmButtonColor: "#0891b2",
@@ -67,19 +64,28 @@ export default function Bombas() {
 
   const totalPages = Math.ceil(total / pageSize);
 
-  const Estado = ({ valor }) => {
-    return valor ? (
+  const formatearFecha = (fecha) => {
+    if (!fecha) return "-";
+    return new Date(fecha).toLocaleDateString("es-PE", {
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    });
+  };
+
+  const EstadoBadge = ({ valor }) => {
+    const esActivo = (valor || "").toLowerCase() === "activo";
+
+    return (
       <div className="flex justify-center">
-        <div className="flex items-center gap-1 bg-green-100 text-green-700 px-3 py-1 rounded-full text-sm font-semibold">
-          <FaCheckCircle />
-          Completado
-        </div>
-      </div>
-    ) : (
-      <div className="flex justify-center">
-        <div className="flex items-center gap-1 bg-red-100 text-red-600 px-3 py-1 rounded-full text-sm font-semibold">
-          <FaTimesCircle />
-          Pendiente
+        <div
+          className={`px-3 py-1 rounded-full text-sm font-semibold ${
+            esActivo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+          }`}
+        >
+          {valor || "Sin estado"}
         </div>
       </div>
     );
@@ -92,15 +98,15 @@ export default function Bombas() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-cyan-600 p-4 rounded-2xl shadow-lg">
-              <FaHeartbeat className="text-white text-3xl" />
+              <FaBoxOpen className="text-white text-3xl" />
             </div>
 
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-                Gestión de Bombas
+                Gestión de Almacenados
               </h1>
               <p className="text-slate-500 mt-1">
-                Seguimiento del proceso de mantenimiento.
+                Control de artículos almacenados y su categoría.
               </p>
             </div>
           </div>
@@ -115,7 +121,7 @@ export default function Bombas() {
             </button>
 
             <button
-              onClick={() => navigate("/agregar-maquina")}
+              onClick={() => navigate("/agregar-almacenados")}
               className="flex items-center gap-2 px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md transition"
             >
               <FaPlus />
@@ -129,7 +135,7 @@ export default function Bombas() {
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
         {loading ? (
           <div className="p-10 text-center text-slate-500">
-            ⏳ Cargando máquinas...
+            ⏳ Cargando almacenados...
           </div>
         ) : (
           <>
@@ -137,49 +143,36 @@ export default function Bombas() {
               <table className="min-w-full">
                 <thead>
                   <tr className="bg-cyan-700 text-white text-sm uppercase">
-                    <th className="px-6 py-5 text-left">Máquina</th>
+                    <th className="px-6 py-5 text-left">Nombre</th>
                     <th className="px-6 py-5 text-left">Serie / Lote</th>
-                    <th className="px-4 py-5 text-center">Recolección</th>
-                    <th className="px-4 py-5 text-center">Limpieza</th>
-                    <th className="px-4 py-5 text-center">Prueba CAN</th>
-                    <th className="px-4 py-5 text-center">Reparación</th>
-                    <th className="px-4 py-5 text-center">Actualización</th>
-                    <th className="px-4 py-5 text-center">TSC</th>
-                    <th className="px-4 py-5 text-center">Empaque</th>
+                    <th className="px-6 py-5 text-left">Categoría</th>
+                    <th className="px-4 py-5 text-center">Estado</th>
+                    <th className="px-6 py-5 text-left">Nota</th>
+                    <th className="px-4 py-5 text-left">Creado en</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {bombas.map((m, index) => (
+                  {almacenados.map((item, index) => (
                     <tr
-                      key={m.id}
-                      onClick={() => navigate(`/editar-maquina/${m.id}`)}
+                      key={item.id}
+                      onClick={() => navigate(`/editar-almacenado/${item.id}`)}
                       className={`border-b hover:bg-cyan-50 transition cursor-pointer
                       ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >
-                      <td className="px-6 py-5 font-bold">{m.nombre}</td>
-                      <td className="px-6 py-5">{m.serie_lote}</td>
-
-                      <td className="px-3 py-5 text-center">
-                        <Estado valor={m.recoleccion} />
+                      <td className="px-6 py-5 font-bold">{item.nombre}</td>
+                      <td className="px-6 py-5">{item.serie_lote || "-"}</td>
+                      <td className="px-6 py-5">
+                        {item.categorias?.nombre || "Sin categoría"}
                       </td>
                       <td className="px-3 py-5 text-center">
-                        <Estado valor={m.limpieza} />
+                        <EstadoBadge valor={item.estado} />
                       </td>
-                      <td className="px-3 py-5 text-center">
-                        <Estado valor={m.prueba_can} />
+                      <td className="px-6 py-5 text-slate-600">
+                        {item.nota || "-"}
                       </td>
-                      <td className="px-3 py-5 text-center">
-                        <Estado valor={m.reparacion} />
-                      </td>
-                      <td className="px-3 py-5 text-center">
-                        <Estado valor={m.actualizacion} />
-                      </td>
-                      <td className="px-3 py-5 text-center">
-                        <Estado valor={m.tsc} />
-                      </td>
-                      <td className="px-3 py-5 text-center">
-                        <Estado valor={m.empaque} />
+                      <td className="px-4 py-5 text-slate-500 text-sm">
+                        {formatearFecha(item.creado_en)}
                       </td>
                     </tr>
                   ))}

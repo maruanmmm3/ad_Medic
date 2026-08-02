@@ -12,20 +12,31 @@ export default function AgregarBateria() {
   const [categoria, setCategoria] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [usuarioId, setUsuarioId] = useState(null);
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
 
-  /* Obtener datos del usuario */
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  /* Obtener datos del usuario logueado con Supabase Auth */
+  useEffect(() => {
+    const verificarSesion = async () => {
+      const { data, error } = await supabase.auth.getSession();
 
-  if (!usuario) {
-    Swal.fire({
-      icon: "error",
-      title: "Sesión expirada",
-      text: "Debes iniciar sesión nuevamente.",
-    });
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
 
-    setLoading(false);
-    return;
-  }
+      setUsuarioId(data.session.user.id);
+      setVerificandoSesion(false);
+    };
+
+    verificarSesion();
+  }, [navigate]);
   /* Fin obtener datos del usuario */
 
   const guardar = async () => {
@@ -39,6 +50,15 @@ export default function AgregarBateria() {
       return;
     }
 
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.from("baterias").insert([
@@ -46,7 +66,7 @@ export default function AgregarBateria() {
         nombre,
         serie_lote: serieLote,
         categoria_id: Number(categoria),
-        usuario_id: usuario.id, // Asignar el ID del usuario actual
+        usuario_id: usuarioId, // Asignar el ID del usuario actual
 
         mantenimiento: false,
         prueba: false,
@@ -101,6 +121,14 @@ export default function AgregarBateria() {
   useEffect(() => {
     obtenerCategorias();
   }, []);
+
+  if (verificandoSesion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-slate-100 to-cyan-100 p-4 md:p-8">

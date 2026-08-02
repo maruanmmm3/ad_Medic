@@ -12,20 +12,31 @@ export default function AgregarFuentePoder() {
   const [categoria, setCategoria] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [usuarioId, setUsuarioId] = useState(null);
+  const [verificandoSesion, setVerificandoSesion] = useState(true);
 
-  /* Obtener datos del usuario */
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  /* Obtener datos del usuario logueado con Supabase Auth */
+  useEffect(() => {
+    const verificarSesion = async () => {
+      const { data, error } = await supabase.auth.getSession();
 
-  if (!usuario) {
-    Swal.fire({
-      icon: "error",
-      title: "Sesión expirada",
-      text: "Debes iniciar sesión nuevamente.",
-    });
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
 
-    setLoading(false);
-    return;
-  }
+      setUsuarioId(data.session.user.id);
+      setVerificandoSesion(false);
+    };
+
+    verificarSesion();
+  }, [navigate]);
   /* Fin obtener datos del usuario */
 
   const obtenerCategorias = async () => {
@@ -59,6 +70,15 @@ export default function AgregarFuentePoder() {
       return;
     }
 
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
+
     setLoading(true);
 
     const { error } = await supabase.from("fuentespoder").insert([
@@ -66,7 +86,7 @@ export default function AgregarFuentePoder() {
         nombre,
         serie_lote: serieLote,
         categoria_id: categoria,
-        usuario_id: usuario.id, // Asignar el ID del usuario actual
+        usuario_id: usuarioId, // Asignar el ID del usuario actual
 
         recoleccion: false,
         reparacion: false,
@@ -106,6 +126,14 @@ export default function AgregarFuentePoder() {
     });
   };
 
+  if (verificandoSesion) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <p className="text-slate-500">Cargando...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cyan-50 via-slate-100 to-cyan-100 p-4 md:p-8">
       {/* ENCABEZADO */}
@@ -128,7 +156,7 @@ export default function AgregarFuentePoder() {
           </div>
 
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => navigate("maquinas/fuentespoder")}
             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl shadow-lg transition"
           >
             <FaArrowLeft />

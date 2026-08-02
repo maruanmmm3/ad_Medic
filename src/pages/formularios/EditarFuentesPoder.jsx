@@ -24,6 +24,32 @@ export default function EditarFuentespoder() {
 
   const [fuenteOriginal, setFuenteOriginal] = useState(null); //Historial
 
+  const [usuarioId, setUsuarioId] = useState(null);
+
+  /* =========================
+     OBTENER USUARIO (Supabase Auth)
+  ========================== */
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
+
+      setUsuarioId(data.session.user.id);
+    };
+
+    obtenerUsuario();
+  }, [navigate]);
+
   /* =========================
      OBTENER FUENTE DE PODER
   ========================== */
@@ -82,7 +108,14 @@ export default function EditarFuentespoder() {
          ACTUALIZAR
   ========================== */
   const actualizar = async () => {
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
 
     if (!nombre || !serieLote) {
       Swal.fire({
@@ -120,7 +153,7 @@ export default function EditarFuentespoder() {
           tabla: "fuentespoder",
           registro_id: Number(id),
           actividad: "Recolección",
-          usuario_id: usuario.id,
+          usuario_id: usuarioId,
         });
       }
 
@@ -129,7 +162,7 @@ export default function EditarFuentespoder() {
           tabla: "fuentespoder",
           registro_id: Number(id),
           actividad: "Reparación",
-          usuario_id: usuario.id,
+          usuario_id: usuarioId,
         });
       }
 
@@ -138,7 +171,7 @@ export default function EditarFuentespoder() {
           tabla: "fuentespoder",
           registro_id: Number(id),
           actividad: "Limpieza",
-          usuario_id: usuario.id,
+          usuario_id: usuarioId,
         });
       }
 
@@ -147,7 +180,7 @@ export default function EditarFuentespoder() {
           tabla: "fuentespoder",
           registro_id: Number(id),
           actividad: "Etiqueta",
-          usuario_id: usuario.id,
+          usuario_id: usuarioId,
         });
       }
 
@@ -156,7 +189,7 @@ export default function EditarFuentespoder() {
           tabla: "fuentespoder",
           registro_id: Number(id),
           actividad: "Empaquetado",
-          usuario_id: usuario.id,
+          usuario_id: usuarioId,
         });
       }
 

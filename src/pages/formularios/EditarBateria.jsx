@@ -22,6 +22,30 @@ export default function EditarBateria() {
 
   const [bateriaOriginal, setBateriaOriginal] = useState(null); //Historial
 
+  const [usuarioId, setUsuarioId] = useState(null);
+
+  /* Obtener el usuario logueado con Supabase Auth (para el historial) */
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
+
+      setUsuarioId(data.session.user.id);
+    };
+
+    obtenerUsuario();
+  }, [navigate]);
+
   /* Obtener batería */
   useEffect(() => {
     const obtenerBateria = async () => {
@@ -69,7 +93,14 @@ export default function EditarBateria() {
   }, []);
 
   const actualizar = async () => {
-    const usuario = JSON.parse(localStorage.getItem("usuario"));
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
 
     try {
       if (!nombre.trim()) {
@@ -115,7 +146,7 @@ export default function EditarBateria() {
             tabla: "baterias",
             registro_id: Number(id),
             actividad: "Mantenimiento",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -124,7 +155,7 @@ export default function EditarBateria() {
             tabla: "baterias",
             registro_id: Number(id),
             actividad: "Prueba",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 

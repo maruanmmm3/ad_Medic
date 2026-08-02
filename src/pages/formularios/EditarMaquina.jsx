@@ -25,6 +25,30 @@ export default function EditarMaquina() {
 
   const [maquinaOriginal, setMaquinaOriginal] = useState(null); //Historial
 
+  const [usuarioId, setUsuarioId] = useState(null);
+
+  /* Obtener el usuario logueado con Supabase Auth (para el historial) */
+  useEffect(() => {
+    const obtenerUsuario = async () => {
+      const { data, error } = await supabase.auth.getSession();
+
+      if (error || !data.session) {
+        Swal.fire({
+          icon: "error",
+          title: "Sesión expirada",
+          text: "Debes iniciar sesión nuevamente.",
+        }).then(() => {
+          navigate("/");
+        });
+        return;
+      }
+
+      setUsuarioId(data.session.user.id);
+    };
+
+    obtenerUsuario();
+  }, [navigate]);
+
   /* Obtener Maquina de la BD */
   useEffect(() => {
     const obtenerMaquina = async () => {
@@ -77,7 +101,14 @@ export default function EditarMaquina() {
   }, []);
 
   const actualizar = async () => {
-    const usuario = JSON.parse(localStorage.getItem("usuario")); // para Historial
+    if (!usuarioId) {
+      Swal.fire({
+        icon: "error",
+        title: "Sesión expirada",
+        text: "Debes iniciar sesión nuevamente.",
+      });
+      return;
+    }
 
     try {
       if (!nombre.trim()) {
@@ -127,7 +158,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "Recolección",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -136,7 +167,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "Limpieza",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -145,7 +176,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "Prueba CAN",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -154,7 +185,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "Reparación",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -163,7 +194,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "Actualización",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -172,7 +203,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "TSC",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
@@ -181,7 +212,7 @@ export default function EditarMaquina() {
             tabla: "maquinas",
             registro_id: id,
             actividad: "Empaque",
-            usuario_id: usuario.id,
+            usuario_id: usuarioId,
           });
         }
 
