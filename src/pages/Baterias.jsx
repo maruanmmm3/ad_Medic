@@ -30,7 +30,7 @@ export default function Baterias() {
     const { data, error, count } = await supabase
       .from("baterias")
       .select("*", { count: "exact" })
-      .order("creado_en", { ascending: false })
+      .order("fecha", { ascending: false })
       .range(from, to);
 
     if (error) {

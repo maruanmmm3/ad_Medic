@@ -8,8 +8,8 @@ import Baterias from "../pages/Baterias";
 import ProtectedRoute from "./ProtectedRoute";
 import PublicRoute from "./PublicRoute";
 import Perfil from "../pages/Perfil";
-import AgregarMaquina from "../pages/formularios/AgregarMaquina";
-import EditarMaquina from "../pages/formularios/EditarMaquina";
+import AgregarBomba from "../pages/formularios/AgregarBomba";
+import EditarBomba from "../pages/formularios/EditarBomba";
 import AgregarPole from "../pages/formularios/AgregarPole";
 import EditarPole from "../pages/formularios/EditarPole";
 import AgregarFuentesPoder from "../pages/formularios/AgregarFuentesPoder";
@@ -19,7 +19,10 @@ import AgregarAlmacenados from "../pages/formularios/AgregarAlmacenados";
 import EditarBateria from "../pages/formularios/EditarBateria";
 import Actividades from "../pages/Actividades";
 import Almacenados from "../pages/Almacenados";
+import EditarAlmacenado from "../pages/formularios/EditarAlmacenado";
+import Configuracion from "../pages/Configuracion";
 import Reportes from "../pages/Reportes";
+import Importacion from "../pages/Importacion";
 
 function AppRoutes() {
   return (
@@ -51,18 +54,18 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/agregar-maquina"
+        path="/agregar-bomba"
         element={
           <ProtectedRoute>
-            <AgregarMaquina />
+            <AgregarBomba />
           </ProtectedRoute>
         }
       />
       <Route
-        path="/editar-maquina/:id"
+        path="/editar-bomba/:id"
         element={
           <ProtectedRoute>
-            <EditarMaquina />
+            <EditarBomba />
           </ProtectedRoute>
         }
       />
@@ -155,6 +158,14 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/editar-almacenado/:id"
+        element={
+          <ProtectedRoute>
+            <EditarAlmacenado />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/reportes"
         element={
           <ProtectedRoute>
@@ -163,10 +174,26 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/importacion"
+        element={
+          <ProtectedRoute>
+            <Importacion />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/perfil"
         element={
           <ProtectedRoute>
             <Perfil />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/configuracion"
+        element={
+          <ProtectedRoute>
+            <Configuracion />
           </ProtectedRoute>
         }
       />

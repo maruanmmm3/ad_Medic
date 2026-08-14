@@ -28,7 +28,7 @@ export default function Almacenados() {
     const { data, error, count } = await supabase
       .from("almacenados")
       .select("*, categorias(nombre)", { count: "exact" })
-      .order("creado_en", { ascending: false })
+      .order("fecha", { ascending: false })
       .range(from, to);
 
     if (error) {
@@ -76,13 +76,15 @@ export default function Almacenados() {
   };
 
   const EstadoBadge = ({ valor }) => {
-    const esActivo = (valor || "").toLowerCase() === "activo";
+    const esOperativa = (valor || "").toLowerCase() === "operativa";
 
     return (
       <div className="flex justify-center">
         <div
           className={`px-3 py-1 rounded-full text-sm font-semibold ${
-            esActivo ? "bg-green-100 text-green-700" : "bg-red-100 text-red-600"
+            esOperativa
+              ? "bg-green-100 text-green-700"
+              : "bg-red-100 text-red-600"
           }`}
         >
           {valor || "Sin estado"}
@@ -148,7 +150,7 @@ export default function Almacenados() {
                     <th className="px-6 py-5 text-left">Categoría</th>
                     <th className="px-4 py-5 text-center">Estado</th>
                     <th className="px-6 py-5 text-left">Nota</th>
-                    <th className="px-4 py-5 text-left">Creado en</th>
+                    <th className="px-4 py-5 text-left">Fecha</th>
                   </tr>
                 </thead>
 
@@ -172,7 +174,7 @@ export default function Almacenados() {
                         {item.nota || "-"}
                       </td>
                       <td className="px-4 py-5 text-slate-500 text-sm">
-                        {formatearFecha(item.creado_en)}
+                        {formatearFecha(item.fecha)}
                       </td>
                     </tr>
                   ))}

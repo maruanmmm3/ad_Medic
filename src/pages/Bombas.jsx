@@ -29,9 +29,9 @@ export default function Bombas() {
     const to = from + pageSize - 1;
 
     const { data, error, count } = await supabase
-      .from("maquinas")
+      .from("bombas")
       .select("*", { count: "exact" })
-      .order("creado_en", { ascending: false })
+      .order("fecha", { ascending: false })
       .range(from, to);
 
     if (error) {
@@ -115,7 +115,7 @@ export default function Bombas() {
             </button>
 
             <button
-              onClick={() => navigate("/agregar-maquina")}
+              onClick={() => navigate("/agregar-bomba")}
               className="flex items-center gap-2 px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md transition"
             >
               <FaPlus />
@@ -153,7 +153,7 @@ export default function Bombas() {
                   {bombas.map((m, index) => (
                     <tr
                       key={m.id}
-                      onClick={() => navigate(`/editar-maquina/${m.id}`)}
+                      onClick={() => navigate(`/editar-bomba/${m.id}`)}
                       className={`border-b hover:bg-cyan-50 transition cursor-pointer
                       ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >

@@ -22,12 +22,16 @@ const COLORS = [
 
 export default function GraficoCircularBaterias() {
   const [data, setData] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [hayDatos, setHayDatos] = useState(true);
 
   useEffect(() => {
     obtenerDatos();
   }, []);
 
   const obtenerDatos = async () => {
+    setCargando(true);
+
     const hoy = new Date();
 
     // Lunes de la semana actual
@@ -45,12 +49,14 @@ export default function GraficoCircularBaterias() {
 
     const { data: baterias, error } = await supabase
       .from("baterias")
-      .select("mantenimiento, prueba, creado_en")
-      .gte("creado_en", lunes.toISOString())
-      .lte("creado_en", domingo.toISOString());
+      .select("mantenimiento, prueba, fecha")
+      .gte("fecha", lunes.toISOString())
+      .lte("fecha", domingo.toISOString());
 
     if (error) {
       console.log(error);
+      setHayDatos(false);
+      setCargando(false);
       return;
     }
 
@@ -77,8 +83,36 @@ export default function GraficoCircularBaterias() {
       value: conteo[e.nombre],
     }));
 
+    const total = formatted.reduce((acc, item) => acc + item.value, 0);
+
     setData(formatted);
+    setHayDatos(total > 0);
+    setCargando(false);
   };
+
+  if (cargando) {
+    return (
+      <div id="grafico-bateria" className="bg-white p-6 rounded-3xl shadow-lg">
+        <h2 className="text-xl font-bold mb-4 text-slate-700">
+          Estado de Baterias
+        </h2>
+        <p className="text-center text-slate-500 py-10">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!hayDatos) {
+    return (
+      <div id="grafico-bateria" className="bg-white p-6 rounded-3xl shadow-lg">
+        <h2 className="text-xl font-bold mb-4 text-slate-700">
+          Estado de Baterias
+        </h2>
+        <p className="text-center text-slate-500 py-10">
+          No hay información de la semana
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div id="grafico-bateria" className="bg-white p-6 rounded-3xl shadow-lg">

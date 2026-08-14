@@ -55,7 +55,11 @@ export default function Login() {
     e.preventDefault();
 
     if (!nombre || !usuario || !email || !password) {
-      alert("Completa todos los campos");
+      Swal.fire({
+        icon: "warning",
+        title: "Campos incompletos",
+        text: "Completa todos los campos",
+      });
       return;
     }
 
@@ -75,15 +79,22 @@ export default function Login() {
     setLoading(false);
 
     if (error) {
-      alert(error.message);
+      Swal.fire({
+        icon: "error",
+        title: "Error al registrar",
+        text: error.message,
+      });
       return;
     }
 
     // Si tienes confirmación de email activada en Supabase, el usuario
     // debe confirmar su correo antes de poder iniciar sesión.
-    alert(
-      "Usuario registrado correctamente. Revisa tu correo si se requiere confirmación.",
-    );
+    Swal.fire({
+      icon: "success",
+      title: "¡Registro exitoso!",
+      text: "Usuario registrado correctamente. Revisa tu correo si se requiere confirmación.",
+      confirmButtonColor: "#3085d6",
+    });
 
     setNombre("");
     setUsuario("");

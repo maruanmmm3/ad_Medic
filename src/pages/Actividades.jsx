@@ -51,6 +51,35 @@ function formatFecha(fecha) {
   });
 }
 
+// Lunes (00:00:00) y Viernes (23:59:59) de la semana actual
+function obtenerSemanaActual() {
+  const hoy = new Date();
+  const diaSemana = hoy.getDay(); // 0 = Domingo
+
+  const lunes = new Date(hoy);
+  const diferencia = diaSemana === 0 ? -6 : 1 - diaSemana;
+  lunes.setDate(hoy.getDate() + diferencia);
+  lunes.setHours(0, 0, 0, 0);
+
+  const viernes = new Date(lunes);
+  viernes.setDate(lunes.getDate() + 4);
+  viernes.setHours(23, 59, 59, 999);
+
+  return { lunes, viernes };
+}
+
+// Convierte un Date a "YYYY-MM-DD" en hora LOCAL (para inputs type="date")
+function formatInputDate(date) {
+  const y = date.getFullYear();
+  const m = String(date.getMonth() + 1).padStart(2, "0");
+  const d = String(date.getDate()).padStart(2, "0");
+  return `${y}-${m}-${d}`;
+}
+
+const { lunes: LUNES_SEMANA, viernes: VIERNES_SEMANA } = obtenerSemanaActual();
+const LUNES_STR = formatInputDate(LUNES_SEMANA);
+const VIERNES_STR = formatInputDate(VIERNES_SEMANA);
+
 export default function Actividades() {
   const navigate = useNavigate();
   const [registros, setRegistros] = useState([]);
@@ -58,8 +87,9 @@ export default function Actividades() {
   const [error, setError] = useState(null);
   const [busqueda, setBusqueda] = useState("");
   const [tablaFiltro, setTablaFiltro] = useState("todas");
-  const [fechaInicio, setFechaInicio] = useState("");
-  const [fechaFin, setFechaFin] = useState("");
+  // Por defecto, el rango de fechas es la semana actual (lunes a viernes)
+  const [fechaInicio, setFechaInicio] = useState(LUNES_STR);
+  const [fechaFin, setFechaFin] = useState(VIERNES_STR);
   const [pagina, setPagina] = useState(1);
 
   const [modalAbierto, setModalAbierto] = useState(false);
@@ -78,16 +108,24 @@ export default function Actividades() {
       setLoading(true);
       setError(null);
 
-      const usuario = JSON.parse(localStorage.getItem("usuario"));
+      const {
+        data: { user },
+        error: userError,
+      } = await supabase.auth.getUser();
 
-      if (!usuario?.id) {
+      if (userError) throw userError;
+
+      if (!user?.id) {
         throw new Error("No se encontró una sesión activa.");
       }
 
+      // Solo traemos actividades de la semana actual (lunes a viernes)
       const { data, error: queryError } = await supabase
         .from("historial_actividades")
         .select("tabla, registro_id, actividad, usuario_id, fecha")
-        .eq("usuario_id", usuario.id)
+        .eq("usuario_id", user.id)
+        .gte("fecha", LUNES_SEMANA.toISOString())
+        .lte("fecha", VIERNES_SEMANA.toISOString())
         .order("fecha", { ascending: false });
 
       if (queryError) throw queryError;
@@ -242,7 +280,7 @@ export default function Actividades() {
             Mis Actividades
           </h1>
           <p className="text-slate-500 text-sm md:text-base">
-            Historial de acciones realizadas en el sistema.
+            Historial de acciones realizadas en el sistema (semana actual, lunes a viernes).
           </p>
         </div>
       </div>
@@ -251,7 +289,7 @@ export default function Actividades() {
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div className="bg-white rounded-xl shadow-sm p-5 flex items-center justify-between">
           <div>
-            <p className="text-slate-500 text-sm">Total Actividades</p>
+            <p className="text-slate-500 text-sm">Total de la Semana</p>
             <p className="text-3xl font-bold text-slate-800 mt-1">
               {registros.length}
             </p>
@@ -327,6 +365,8 @@ export default function Actividades() {
               <input
                 type="date"
                 value={fechaInicio}
+                min={LUNES_STR}
+                max={fechaFin || VIERNES_STR}
                 onChange={(e) => {
                   setFechaInicio(e.target.value);
                   setPagina(1);
@@ -337,22 +377,24 @@ export default function Actividades() {
               <input
                 type="date"
                 value={fechaFin}
+                min={fechaInicio || LUNES_STR}
+                max={VIERNES_STR}
                 onChange={(e) => {
                   setFechaFin(e.target.value);
                   setPagina(1);
                 }}
                 className="text-sm border border-slate-200 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-teal-500"
               />
-              {(fechaInicio || fechaFin) && (
+              {(fechaInicio !== LUNES_STR || fechaFin !== VIERNES_STR) && (
                 <button
                   onClick={() => {
-                    setFechaInicio("");
-                    setFechaFin("");
+                    setFechaInicio(LUNES_STR);
+                    setFechaFin(VIERNES_STR);
                     setPagina(1);
                   }}
                   className="text-xs text-slate-500 hover:text-slate-700 underline"
                 >
-                  Limpiar
+                  Restablecer semana
                 </button>
               )}
             </div>
@@ -374,7 +416,7 @@ export default function Actividades() {
 
         {!loading && !error && registrosFiltrados.length === 0 && (
           <div className="text-center text-slate-500 py-16">
-            No se encontraron actividades para mostrar.
+            No hay información de la semana.
           </div>
         )}
 

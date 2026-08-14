@@ -87,7 +87,7 @@ export default function AgregarFuentePoder() {
         serie_lote: serieLote,
         categoria_id: categoria,
         usuario_id: usuarioId, // Asignar el ID del usuario actual
-
+        fecha: new Date().toISOString(),
         recoleccion: false,
         reparacion: false,
         limpieza: false,

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
 import { FaWarehouse, FaArrowLeft, FaSave } from "react-icons/fa";
@@ -15,8 +15,9 @@ const estadosDisponibles = ["Operativa", "Inoperativa"];
 // Nombres para los cuales la categoría se oculta dinámicamente
 const NOMBRES_SIN_CATEGORIA = ["Compact Plus", "Enteroport"];
 
-export default function AgregarAlmacenados() {
+export default function EditarAlmacenado() {
   const navigate = useNavigate();
+  const { id } = useParams();
 
   const [nombre, setNombre] = useState("");
   const [serieLote, setSerieLote] = useState("");
@@ -26,6 +27,7 @@ export default function AgregarAlmacenados() {
   const [nota, setNota] = useState("");
 
   const [loading, setLoading] = useState(false);
+  const [cargando, setCargando] = useState(true);
   const [usuarioId, setUsuarioId] = useState(null);
   const [verificandoSesion, setVerificandoSesion] = useState(true);
 
@@ -57,7 +59,6 @@ export default function AgregarAlmacenados() {
   /* Fin obtener datos del usuario */
 
   const obtenerCategorias = async () => {
-    //Contara para lo mismo de Bombas
     const { data, error } = await supabase
       .from("categorias")
       .select("id, nombre")
@@ -72,9 +73,38 @@ export default function AgregarAlmacenados() {
     setCategorias(data);
   };
 
+  const obtenerAlmacenado = async () => {
+    const { data, error } = await supabase
+      .from("almacenados")
+      .select("*")
+      .eq("id", id)
+      .single();
+
+    if (error || !data) {
+      console.log(error);
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo cargar el equipo",
+      }).then(() => {
+        navigate("/maquinas/almacenados");
+      });
+      return;
+    }
+
+    setNombre(data.nombre || "");
+    setSerieLote(data.serie_lote || "");
+    setCategoria(data.categoria_id || "");
+    setEstado(data.estado || "");
+    setNota(data.nota || "");
+    setCargando(false);
+  };
+
   useEffect(() => {
     obtenerCategorias();
-  }, []);
+    obtenerAlmacenado();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [id]);
 
   const handleNombreChange = (e) => {
     const nuevoNombre = e.target.value;
@@ -96,7 +126,7 @@ export default function AgregarAlmacenados() {
     }
   };
 
-  const guardar = async () => {
+  const actualizar = async () => {
     if (!nombre || !estado) {
       Swal.fire({
         icon: "warning",
@@ -119,17 +149,16 @@ export default function AgregarAlmacenados() {
 
     setLoading(true);
 
-    const { error } = await supabase.from("almacenados").insert([
-      {
+    const { error } = await supabase
+      .from("almacenados")
+      .update({
         nombre,
         serie_lote: serieLote || null,
         categoria_id: mostrarCategoria ? categoria || null : null,
         estado,
         nota: notaHabilitada ? nota : null,
-        usuario_id: usuarioId,
-        fecha: new Date().toISOString(),
-      },
-    ]);
+      })
+      .eq("id", id);
 
     setLoading(false);
 
@@ -139,7 +168,7 @@ export default function AgregarAlmacenados() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo registrar el equipo",
+        text: "No se pudo actualizar el equipo",
       });
 
       return;
@@ -147,7 +176,7 @@ export default function AgregarAlmacenados() {
 
     Swal.fire({
       icon: "success",
-      title: "📦 Equipo registrado",
+      title: "📦 Equipo actualizado",
       text: "Se guardó correctamente",
       timer: 2000,
       showConfirmButton: false,
@@ -155,12 +184,12 @@ export default function AgregarAlmacenados() {
 
     navigate("/maquinas/almacenados", {
       state: {
-        mensaje: "Equipo registrado correctamente",
+        mensaje: "Equipo actualizado correctamente",
       },
     });
   };
 
-  if (verificandoSesion) {
+  if (verificandoSesion || cargando) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <p className="text-slate-500">Cargando...</p>
@@ -181,12 +210,11 @@ export default function AgregarAlmacenados() {
 
             <div>
               <h1 className="text-3xl md:text-4xl font-bold text-slate-800">
-                Registrar Almacenado
+                Editar Almacenado
               </h1>
 
               <p className="text-slate-500">
-                Agrega un nuevo equipo almacenado al sistema este contara como
-                un nuevo tipo de BOMBA
+                Modifica los datos del equipo almacenado
               </p>
             </div>
           </div>
@@ -213,7 +241,7 @@ export default function AgregarAlmacenados() {
             </h2>
 
             <p className="text-cyan-100 mt-1">
-              Complete los datos del equipo almacenado
+              Actualiza los datos del equipo almacenado
             </p>
           </div>
 
@@ -336,19 +364,19 @@ export default function AgregarAlmacenados() {
 
             <div className="flex justify-end gap-4 mt-10">
               <button
-                onClick={() => navigate("maquinas/almacenados")}
+                onClick={() => navigate("/maquinas/almacenados")}
                 className="px-6 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
               >
                 Cancelar
               </button>
 
               <button
-                onClick={guardar}
+                onClick={actualizar}
                 disabled={loading}
                 className="flex items-center gap-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl shadow-lg transition"
               >
                 <FaSave />
-                {loading ? "Guardando..." : "Guardar Equipo"}
+                {loading ? "Guardando..." : "Guardar Cambios"}
               </button>
             </div>
           </div>

@@ -13,6 +13,8 @@ import {
 
 export default function Grafico() {
   const [data, setData] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [hayDatos, setHayDatos] = useState(true);
 
   const obtenerSemanaActual = () => {
     const hoy = new Date();
@@ -33,11 +35,13 @@ export default function Grafico() {
   };
 
   const obtenerDatos = async () => {
+    setCargando(true);
+
     const { lunes, viernes } = obtenerSemanaActual();
 
     const consultas = [
       supabase
-        .from("maquinas")
+        .from("bombas")
         .select("creado_en")
         .gte("creado_en", lunes.toISOString())
         .lte("creado_en", viernes.toISOString()),
@@ -79,6 +83,8 @@ export default function Grafico() {
       5: "Viernes",
     };
 
+    let totalRegistros = 0;
+
     resultados.forEach(({ data, error }) => {
       if (error) {
         console.error(error);
@@ -91,6 +97,7 @@ export default function Grafico() {
 
         if (dia) {
           conteo[dia]++;
+          totalRegistros++;
         }
       });
     });
@@ -102,11 +109,30 @@ export default function Grafico() {
       { dia: "Jueves", cantidad: conteo.Jueves },
       { dia: "Viernes", cantidad: conteo.Viernes },
     ]);
+
+    setHayDatos(totalRegistros > 0);
+    setCargando(false);
   };
 
   useEffect(() => {
     obtenerDatos();
   }, []);
+
+  if (cargando) {
+    return (
+      <div id="grafico-barra" style={{ textAlign: "center", padding: "2rem" }}>
+        <p>Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!hayDatos) {
+    return (
+      <div id="grafico-barra" style={{ textAlign: "center", padding: "2rem" }}>
+        <p>No hay información de la semana</p>
+      </div>
+    );
+  }
 
   return (
     <div id="grafico-barra">

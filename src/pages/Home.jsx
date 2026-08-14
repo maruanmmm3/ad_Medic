@@ -4,11 +4,12 @@ import GraficoCircularBomba from "../components/GraficoCircularBomba";
 import GraficoCircularPoles from "../components/GraficoCircularPoles";
 import GraficoCircularFuentePoder from "../components/GraficoCircularFuentePoder";
 import GraficoCircularBaterias from "../components/GraficoCircularBaterias";
+import GraficoActividad from "../components/GraficoActividad";
 import GraficoUsuarios from "../components/GraficoUsuarios";
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import Dashboard from "../components/ui/DashboardLoader";
-import ReporteSemanalPDF from "../components/ReporteSemanalPDF";
+/* import ReporteSemanalPDF from "../components/ReporteSemanalPDF"; */
 
 import {
   FaHeartbeat,
@@ -47,59 +48,119 @@ export default function Home() {
       const desde = lunes.toISOString();
       const hasta = domingo.toISOString();
 
-      const [maquinas, poles, fuentes, baterias, completadas, pendientes] =
-        await Promise.all([
-          supabase
-            .from("maquinas")
-            .select("*", { count: "exact", head: true })
-            .gte("creado_en", desde)
-            .lte("creado_en", hasta),
+      const [
+        bombas,
+        poles,
+        fuentes,
+        baterias,
+        bombasCompletadas,
+        bombasPendientes,
+        polesCompletadas,
+        polesPendientes,
+        fuentesCompletadas,
+        fuentesPendientes,
+        bateriasCompletadas,
+        bateriasPendientes,
+      ] = await Promise.all([
+        // Totales por tabla
+        supabase
+          .from("bombas")
+          .select("*", { count: "exact", head: true })
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
 
-          supabase
-            .from("poles")
-            .select("*", { count: "exact", head: true })
-            .gte("creado_en", desde)
-            .lte("creado_en", hasta),
+        supabase
+          .from("poles")
+          .select("*", { count: "exact", head: true })
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
 
-          supabase
-            .from("fuentespoder")
-            .select("*", { count: "exact", head: true })
-            .gte("creado_en", desde)
-            .lte("creado_en", hasta),
+        supabase
+          .from("fuentespoder")
+          .select("*", { count: "exact", head: true })
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
 
-          supabase
-            .from("baterias")
-            .select("*", { count: "exact", head: true })
-            .gte("creado_en", desde)
-            .lte("creado_en", hasta),
+        supabase
+          .from("baterias")
+          .select("*", { count: "exact", head: true })
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
 
-          // Completadas (Bombas)
-          supabase
-            .from("maquinas")
-            .select("*", { count: "exact", head: true })
-            .eq("empaque", true)
-            .gte("creado_en", desde)
-            .lte("creado_en", hasta),
+        // Completadas / pendientes por tabla (cada una con su propia columna de estado)
+        supabase
+          .from("bombas")
+          .select("*", { count: "exact", head: true })
+          .eq("empaque", true)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
 
-          // Pendientes (Bombas)
-          supabase
-            .from("maquinas")
-            .select("*", { count: "exact", head: true })
-            .eq("empaque", false)
-            .gte("creado_en", desde)
-            .lte("creado_en", hasta),
-        ]);
+        supabase
+          .from("bombas")
+          .select("*", { count: "exact", head: true })
+          .eq("empaque", false)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
 
-      const errores = [
-        maquinas.error,
-        poles.error,
-        fuentes.error,
-        baterias.error,
-        completadas.error,
-        pendientes.error,
+        supabase
+          .from("poles")
+          .select("*", { count: "exact", head: true })
+          .eq("empaquetado", true)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
+
+        supabase
+          .from("poles")
+          .select("*", { count: "exact", head: true })
+          .eq("empaquetado", false)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
+
+        supabase
+          .from("fuentespoder")
+          .select("*", { count: "exact", head: true })
+          .eq("empaquetado", true)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
+
+        supabase
+          .from("fuentespoder")
+          .select("*", { count: "exact", head: true })
+          .eq("empaquetado", false)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
+
+        supabase
+          .from("baterias")
+          .select("*", { count: "exact", head: true })
+          .eq("prueba", true)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
+
+        supabase
+          .from("baterias")
+          .select("*", { count: "exact", head: true })
+          .eq("prueba", false)
+          .gte("fecha", desde)
+          .lte("fecha", hasta),
+      ]);
+
+      const resultados = [
+        bombas,
+        poles,
+        fuentes,
+        baterias,
+        bombasCompletadas,
+        bombasPendientes,
+        polesCompletadas,
+        polesPendientes,
+        fuentesCompletadas,
+        fuentesPendientes,
+        bateriasCompletadas,
+        bateriasPendientes,
       ];
 
-      const error = errores.find((e) => e);
+      const error = resultados.map((r) => r.error).find((e) => e);
 
       if (error) {
         console.log(error);
@@ -107,14 +168,26 @@ export default function Home() {
       }
 
       const total =
-        (maquinas.count || 0) +
+        (bombas.count || 0) +
         (poles.count || 0) +
         (fuentes.count || 0) +
         (baterias.count || 0);
 
+      const completadasTotal =
+        (bombasCompletadas.count || 0) +
+        (polesCompletadas.count || 0) +
+        (fuentesCompletadas.count || 0) +
+        (bateriasCompletadas.count || 0);
+
+      const pendientesTotal =
+        (bombasPendientes.count || 0) +
+        (polesPendientes.count || 0) +
+        (fuentesPendientes.count || 0) +
+        (bateriasPendientes.count || 0);
+
       setTotalMaquinas(total);
-      setCompletadas(completadas.count || 0);
-      setPendientes(pendientes.count || 0);
+      setCompletadas(completadasTotal);
+      setPendientes(pendientesTotal);
     } catch (error) {
       console.log(error);
     } finally {
@@ -122,7 +195,7 @@ export default function Home() {
     }
   };
 
-  const descargarPDF = async () => {
+  /* const descargarPDF = async () => {
     if (!reporteRef.current) {
       console.error("No se encontró el contenido para generar el PDF.");
       return;
@@ -145,7 +218,7 @@ export default function Home() {
     pdf.addImage(imgData, "PNG", 0, 0, pdfWidth, pdfHeight);
 
     pdf.save("Reporte-Semanal.pdf");
-  };
+  }; */
 
   useEffect(() => {
     obtenerResumen();
@@ -177,11 +250,11 @@ export default function Home() {
               </div>
 
               {/* Botón */}
-              <ReporteSemanalPDF
+              {/*  <ReporteSemanalPDF
                 totalEquipos={totalMaquinas}
                 completadas={completadas}
                 pendientes={pendientes}
-              />
+              /> */}
             </div>
 
             {/* TARJETAS */}
@@ -251,6 +324,14 @@ export default function Home() {
             {/* GRAFICOS */}
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+              <div className="bg-white rounded-3xl shadow-lg p-6 lg:col-span-2">
+                <h2 className="text-xl font-bold text-slate-700 mb-5">
+                  Total a la Semana
+                </h2>
+
+                <GraficoActividad />
+              </div>
+
               <div className="bg-white rounded-3xl shadow-lg p-6">
                 <h2 className="text-xl font-bold text-slate-700 mb-5">
                   Total a la Semana

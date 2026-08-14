@@ -13,8 +13,11 @@ import {
 
 export default function GraficoUsuarios() {
   const [data, setData] = useState([]);
+  const [cargando, setCargando] = useState(true);
 
   const obtenerDatos = async () => {
+    setCargando(true);
+
     const hoy = new Date();
 
     // Obtener el lunes de la semana
@@ -37,6 +40,8 @@ export default function GraficoUsuarios() {
 
     if (error) {
       console.error("Error al obtener historial:", error);
+      setData([]);
+      setCargando(false);
       return;
     }
 
@@ -55,6 +60,7 @@ export default function GraficoUsuarios() {
       .sort((a, b) => b.cantidad - a.cantidad);
 
     setData(resultado);
+    setCargando(false);
   };
 
   useEffect(() => {
@@ -62,6 +68,28 @@ export default function GraficoUsuarios() {
   }, []);
 
   const COLORS = ["#0891b2", "#06b6d4", "#67e8f9", "#a5f3fc"];
+
+  if (cargando) {
+    return (
+      <div
+        id="grafico-usuarios"
+        style={{ textAlign: "center", padding: "2rem" }}
+      >
+        <p>Cargando...</p>
+      </div>
+    );
+  }
+
+  if (data.length === 0) {
+    return (
+      <div
+        id="grafico-usuarios"
+        style={{ textAlign: "center", padding: "2rem" }}
+      >
+        <p>No hay información de la semana</p>
+      </div>
+    );
+  }
 
   return (
     <div id="grafico-usuarios">

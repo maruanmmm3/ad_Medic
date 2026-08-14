@@ -16,13 +16,16 @@ import { useNavigate } from "react-router-dom";
 // Opciones de foto de perfil disponibles para elegir (no se sube archivo, se selecciona una)
 const OPCIONES_FOTO = [
   "https://cdn-icons-png.flaticon.com/512/3135/3135768.png",
+  "https://cdn-icons-png.flaticon.com/512/2920/2920072.png",
   "https://i.pinimg.com/564x/9d/6b/9d/9d6b9db2dcb0526a09b89fb35d075c72.jpg",
+  "https://dthezntil550i.cloudfront.net/f4/latest/f41908291942413280009640715/1280_960/1b2d9510-d66d-43a2-971a-cfcbb600e7fe.png",
+  "https://i.pinimg.com/236x/d1/e3/d2/d1e3d2a12bc3d0221898c4391dffcfff.jpg",
 ];
 
 export default function Perfil() {
   const navigate = useNavigate();
 
-  const usuario = JSON.parse(localStorage.getItem("usuario"));
+  const [userId, setUserId] = useState(null);
 
   const [nombre, setNombre] = useState("");
   const [telefono, setTelefono] = useState("");
@@ -35,20 +38,28 @@ export default function Perfil() {
 
   const [loading, setLoading] = useState(false);
 
-  // Carga el perfil real desde Supabase (no solo lo que haya en localStorage)
+  // Carga el usuario autenticado y su perfil real desde Supabase
   useEffect(() => {
     const cargarPerfil = async () => {
-      if (!usuario) {
+      const {
+        data: { user },
+        error: errorAuth,
+      } = await supabase.auth.getUser();
+
+      if (errorAuth || !user) {
+        console.log(errorAuth);
         setCargandoPerfil(false);
+        navigate("/login");
         return;
       }
 
-      setEmail(usuario.email || "");
+      setUserId(user.id);
+      setEmail(user.email || "");
 
       const { data, error } = await supabase
-        .from("perfiles")
+        .from("usuarios")
         .select("*")
-        .eq("id", usuario.id)
+        .eq("id", user.id)
         .maybeSingle();
 
       if (error) {
@@ -69,9 +80,9 @@ export default function Perfil() {
         setPerfilExiste(true);
         setEditando(false);
       } else {
-        // No existe perfil todavía: entramos directo en modo edición
-        // para que el usuario complete sus datos y elija su foto.
-        setNombre(usuario.nombre || "");
+        // No debería pasar normalmente, ya que el trigger crea la fila
+        // en "usuarios" al momento del registro. Por si acaso, entramos
+        // en modo edición para completar los datos.
         setPerfilExiste(false);
         setEditando(true);
       }
@@ -104,32 +115,12 @@ export default function Perfil() {
     try {
       setLoading(true);
 
-      let data;
-      let error;
-
-      // Actualizar
-      if (perfilExiste) {
-        const respuesta = await supabase
-          .from("perfiles")
-          .update({ nombre, telefono, foto_url: fotoUrl })
-          .eq("id", usuario.id)
-          .select()
-          .single();
-
-        data = respuesta.data;
-        error = respuesta.error;
-      }
-      // Insertar (generar perfil por primera vez)
-      else {
-        const respuesta = await supabase
-          .from("perfiles")
-          .insert({ id: usuario.id, nombre, telefono, foto_url: fotoUrl })
-          .select()
-          .single();
-
-        data = respuesta.data;
-        error = respuesta.error;
-      }
+      const { data, error } = await supabase
+        .from("usuarios")
+        .update({ nombre, telefono, foto_url: fotoUrl })
+        .eq("id", userId)
+        .select()
+        .single();
 
       if (error) {
         console.log(error);
@@ -141,14 +132,9 @@ export default function Perfil() {
         return;
       }
 
-      const usuarioActualizado = {
-        ...usuario,
-        nombre: data.nombre,
-        telefono: data.telefono,
-        foto_url: data.foto_url,
-      };
-
-      localStorage.setItem("usuario", JSON.stringify(usuarioActualizado));
+      setNombre(data.nombre);
+      setTelefono(data.telefono);
+      setFotoUrl(data.foto_url);
       setPerfilExiste(true);
       setEditando(false);
 
@@ -291,7 +277,6 @@ export default function Perfil() {
                       <input
                         type="email"
                         value={email}
-                        onChange={(e) => setEmail(e.target.value)}
                         disabled
                         className="
                         w-full

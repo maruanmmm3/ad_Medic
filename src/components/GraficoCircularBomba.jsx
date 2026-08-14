@@ -22,12 +22,16 @@ const COLORS = [
 
 export default function GraficoCircularBomba() {
   const [data, setData] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [hayDatos, setHayDatos] = useState(true);
 
   useEffect(() => {
     obtenerDatos();
   }, []);
 
   const obtenerDatos = async () => {
+    setCargando(true);
+
     const hoy = new Date();
 
     // Lunes de la semana
@@ -43,16 +47,18 @@ export default function GraficoCircularBomba() {
     domingo.setDate(lunes.getDate() + 6);
     domingo.setHours(23, 59, 59, 999);
 
-    const { data: maquinas, error } = await supabase
-      .from("maquinas")
+    const { data: bombas, error } = await supabase
+      .from("bombas")
       .select(
-        "recoleccion, limpieza, prueba_can, reparacion, actualizacion, tsc, empaque, creado_en",
+        "recoleccion, limpieza, prueba_can, reparacion, actualizacion, tsc, empaque, fecha",
       )
-      .gte("creado_en", lunes.toISOString())
-      .lte("creado_en", domingo.toISOString());
+      .gte("fecha", lunes.toISOString())
+      .lte("fecha", domingo.toISOString());
 
     if (error) {
       console.log(error);
+      setHayDatos(false);
+      setCargando(false);
       return;
     }
 
@@ -70,7 +76,7 @@ export default function GraficoCircularBomba() {
 
     etapas.forEach((e) => (conteo[e.nombre] = 0));
 
-    maquinas.forEach((m) => {
+    bombas.forEach((m) => {
       for (let i = etapas.length - 1; i >= 0; i--) {
         if (m[etapas[i].campo]) {
           conteo[etapas[i].nombre]++;
@@ -84,8 +90,36 @@ export default function GraficoCircularBomba() {
       value: conteo[key],
     }));
 
+    const total = formatted.reduce((acc, item) => acc + item.value, 0);
+
     setData(formatted);
+    setHayDatos(total > 0);
+    setCargando(false);
   };
+
+  if (cargando) {
+    return (
+      <div id="grafico-bomba" className="bg-white p-6 rounded-3xl shadow-lg">
+        <h2 className="text-xl font-bold mb-4 text-slate-700">
+          Estado de Bombas
+        </h2>
+        <p className="text-center text-slate-500 py-10">Cargando...</p>
+      </div>
+    );
+  }
+
+  if (!hayDatos) {
+    return (
+      <div id="grafico-bomba" className="bg-white p-6 rounded-3xl shadow-lg">
+        <h2 className="text-xl font-bold mb-4 text-slate-700">
+          Estado de Bombas
+        </h2>
+        <p className="text-center text-slate-500 py-10">
+          No hay información de la semana
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div id="grafico-bomba" className="bg-white p-6 rounded-3xl shadow-lg">

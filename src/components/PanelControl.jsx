@@ -1,5 +1,5 @@
 import { Link, useNavigate, useLocation } from "react-router-dom";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "../lib/supabase";
 import {
   FaTachometerAlt,
@@ -15,7 +15,11 @@ import {
   FaBars,
   FaChevronDown,
   FaBox,
+  FaFileImport,
 } from "react-icons/fa";
+
+// Foto por defecto mientras carga o si el usuario no ha elegido una
+const FOTO_DEFAULT = "https://cdn-icons-png.flaticon.com/512/3135/3135768.png";
 
 function PanelControl() {
   const navigate = useNavigate();
@@ -39,6 +43,46 @@ function PanelControl() {
   const [openMaquinasExtra, setOpenMaquinasExtra] = useState(() =>
     isActiveGroup(rutasMaquinasExtra),
   );
+
+  // Datos del usuario logueado
+  const [nombreUsuario, setNombreUsuario] = useState("");
+  const [nombreUsuarioLogin, setNombreUsuarioLogin] = useState("");
+  const [cargoUsuario, setCargoUsuario] = useState("");
+  const [fotoUsuario, setFotoUsuario] = useState("");
+
+  useEffect(() => {
+    const cargarUsuario = async () => {
+      const {
+        data: { user },
+        error: errorAuth,
+      } = await supabase.auth.getUser();
+
+      if (errorAuth || !user) {
+        console.log(errorAuth);
+        return;
+      }
+
+      const { data, error } = await supabase
+        .from("usuarios")
+        .select("nombre, nombre_usuario, cargo, foto_url")
+        .eq("id", user.id)
+        .maybeSingle();
+
+      if (error) {
+        console.log(error);
+        return;
+      }
+
+      if (data) {
+        setNombreUsuario(data.nombre || "");
+        setNombreUsuarioLogin(data.nombre_usuario || "");
+        setCargoUsuario(data.cargo || "");
+        setFotoUsuario(data.foto_url || "");
+      }
+    };
+
+    cargarUsuario();
+  }, []);
 
   const cerrarSesion = async () => {
     const { error } = await supabase.auth.signOut();
@@ -110,19 +154,37 @@ function PanelControl() {
         </button>
 
         {/* Perfil */}
-        <div className="flex flex-col items-center pt-10 pb-6">
+        <Link
+          to="/perfil"
+          className="flex flex-col items-center pt-10 pb-6"
+          onClick={() => setOpen(false)}
+        >
           <div className="w-24 h-24 rounded-full bg-gradient-to-br from-pink-400 to-pink-600 p-1 shadow-lg">
             <img
-              src="https://yt3.googleusercontent.com/ytc/AIdro_kRH4uH9GTZGyp790ON-JYidM9c9Mm3SpO_s5hLvvQwhA=s900-c-k-c0x00ffffff-no-rj"
+              src={fotoUsuario || FOTO_DEFAULT}
               alt="Usuario"
               className="w-full h-full rounded-full object-cover border-4 border-slate-900"
             />
           </div>
 
-          <h2 className="text-white font-semibold text-lg mt-4">AD MEDIC</h2>
+          <h2 className="text-white font-semibold text-lg mt-4">B. Braun</h2>
+
+          {nombreUsuarioLogin && (
+            <p className="text-slate-400 text-sm mt-0.5">
+              @{nombreUsuarioLogin}
+            </p>
+          )}
+
+          {nombreUsuario && (
+            <p className="text-slate-200 text-sm mt-1">{nombreUsuario}</p>
+          )}
+
+          {cargoUsuario && (
+            <p className="text-slate-400 text-xs mt-0.5">{cargoUsuario}</p>
+          )}
 
           <div className="w-16 h-px bg-slate-700 mt-3" />
-        </div>
+        </Link>
 
         {/* NAV */}
         <nav className="flex-1 overflow-y-auto px-4 flex flex-col gap-1">
@@ -243,6 +305,14 @@ function PanelControl() {
           >
             <FaChartBar className="text-lg" />
             Reportes
+          </Link>
+          <Link
+            to="/importacion"
+            className={linkClasses("/importacion")}
+            onClick={() => setOpen(false)}
+          >
+            <FaFileImport className="text-lg" />
+            Importacion
           </Link>
 
           <Link

@@ -67,7 +67,7 @@ export default function AgregarBateria() {
         serie_lote: serieLote,
         categoria_id: Number(categoria),
         usuario_id: usuarioId, // Asignar el ID del usuario actual
-
+        fecha: new Date().toISOString(),
         mantenimiento: false,
         prueba: false,
       },

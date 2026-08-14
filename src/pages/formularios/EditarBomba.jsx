@@ -5,7 +5,7 @@ import { FaArrowLeft, FaTrash } from "react-icons/fa";
 import EstadoCard from "../../components/EstadoCard";
 import Swal from "sweetalert2";
 
-export default function EditarMaquina() {
+export default function EditarBomba() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [guardando, setGuardando] = useState(false);
@@ -23,7 +23,7 @@ export default function EditarMaquina() {
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
 
-  const [maquinaOriginal, setMaquinaOriginal] = useState(null); //Historial
+  const [bombaOriginal, setBombaOriginal] = useState(null); //Historial
 
   const [usuarioId, setUsuarioId] = useState(null);
 
@@ -49,11 +49,11 @@ export default function EditarMaquina() {
     obtenerUsuario();
   }, [navigate]);
 
-  /* Obtener Maquina de la BD */
+  /* Obtener Bomba de la BD */
   useEffect(() => {
-    const obtenerMaquina = async () => {
+    const obtenerBomba = async () => {
       const { data, error } = await supabase
-        .from("maquinas")
+        .from("bombas")
         .select("*")
         .eq("id", id)
         .single();
@@ -74,10 +74,10 @@ export default function EditarMaquina() {
       setTsc(data.tsc);
       setEmpaque(data.empaque);
       // Guardamos la máquina original
-      setMaquinaOriginal(data);
+      setBombaOriginal(data);
     };
 
-    obtenerMaquina();
+    obtenerBomba();
   }, [id]);
 
   /* Obtener Categorias de la BD */
@@ -134,7 +134,7 @@ export default function EditarMaquina() {
       setGuardando(true);
 
       const { error } = await supabase
-        .from("maquinas")
+        .from("bombas")
         .update({
           nombre,
           serie_lote: serieLote,
@@ -150,66 +150,66 @@ export default function EditarMaquina() {
         .eq("id", id);
 
       // Guardar el historial
-      if (!error && maquinaOriginal) {
+      if (!error && bombaOriginal) {
         const actividades = [];
 
-        if (!maquinaOriginal.recoleccion && recoleccion) {
+        if (!bombaOriginal.recoleccion && recoleccion) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "Recolección",
             usuario_id: usuarioId,
           });
         }
 
-        if (!maquinaOriginal.limpieza && limpieza) {
+        if (!bombaOriginal.limpieza && limpieza) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "Limpieza",
             usuario_id: usuarioId,
           });
         }
 
-        if (!maquinaOriginal.prueba_can && pruebaCan) {
+        if (!bombaOriginal.prueba_can && pruebaCan) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "Prueba CAN",
             usuario_id: usuarioId,
           });
         }
 
-        if (!maquinaOriginal.reparacion && reparacion) {
+        if (!bombaOriginal.reparacion && reparacion) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "Reparación",
             usuario_id: usuarioId,
           });
         }
 
-        if (!maquinaOriginal.actualizacion && actualizacion) {
+        if (!bombaOriginal.actualizacion && actualizacion) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "Actualización",
             usuario_id: usuarioId,
           });
         }
 
-        if (!maquinaOriginal.tsc && tsc) {
+        if (!bombaOriginal.tsc && tsc) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "TSC",
             usuario_id: usuarioId,
           });
         }
 
-        if (!maquinaOriginal.empaque && empaque) {
+        if (!bombaOriginal.empaque && empaque) {
           actividades.push({
-            tabla: "maquinas",
+            tabla: "bombas",
             registro_id: id,
             actividad: "Empaque",
             usuario_id: usuarioId,
@@ -291,7 +291,7 @@ export default function EditarMaquina() {
 
     const { error } = await supabase
 
-      .from("maquinas")
+      .from("bombas")
 
       .delete()
 
@@ -319,7 +319,7 @@ export default function EditarMaquina() {
       confirmButtonColor: "#0891b2",
     });
 
-    navigate("/maquinas/bombas");
+    navigate("/bombas/bombas");
   };
 
   return (
