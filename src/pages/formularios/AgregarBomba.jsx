@@ -4,11 +4,19 @@ import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
 import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 
+// Categorías exclusivas de "Space Plus"
+const CATEGORIAS_SPACE_PLUS = [
+  "Compact Infusora",
+  "Compact Perfusora",
+  "Enteroport",
+];
+
 export default function AgregarBomba() {
   const navigate = useNavigate();
 
-  const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
@@ -39,8 +47,41 @@ export default function AgregarBomba() {
   }, [navigate]);
   /* Fin obtener datos del usuario */
 
+  // Lista de categorías filtrada según la máquina seleccionada
+  const categoriasFiltradas = categorias.filter((cat) => {
+    const esExclusivaSpacePlus = CATEGORIAS_SPACE_PLUS.includes(cat.nombre);
+
+    if (nombreResponsable === "Space Plus") {
+      // Space Plus puede ver todas las categorías (incluidas las exclusivas)
+      return true;
+    }
+
+    // Space (o ninguna máquina seleccionada) no ve las exclusivas de Space Plus
+    return !esExclusivaSpacePlus;
+  });
+
+  // Si cambia la máquina y la categoría elegida ya no es válida, se limpia
+  useEffect(() => {
+    if (!categoria) return;
+
+    const categoriaSeleccionada = categorias.find(
+      (cat) => String(cat.id) === String(categoria),
+    );
+
+    if (!categoriaSeleccionada) return;
+
+    const esExclusivaSpacePlus = CATEGORIAS_SPACE_PLUS.includes(
+      categoriaSeleccionada.nombre,
+    );
+
+    if (esExclusivaSpacePlus && nombreResponsable !== "Space Plus") {
+      setCategoria("");
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [nombreResponsable]);
+
   const guardar = async () => {
-    if (!nombre || !serieLote) {
+    if (!nombreResponsable || !serie) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
@@ -64,8 +105,9 @@ export default function AgregarBomba() {
 
     const { error } = await supabase.from("bombas").insert([
       {
-        nombre,
-        serie_lote: serieLote,
+        nombre_responsable: nombreResponsable,
+        serie,
+        lote,
         categoria_id: categoria,
         usuario_id: usuarioId, // Asignar el ID del usuario actual
         fecha: new Date().toISOString(),
@@ -188,17 +230,17 @@ export default function AgregarBomba() {
 
           <div className="p-8">
             <div className="grid md:grid-cols-2 gap-8">
-              {/* NOMBRE */}
+              {/* NOMBRE RESPONSABLE */}
 
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre de la Máquina
+                  Nombre de la Bomba
                 </label>
 
                 <div className="relative">
                   <select
-                    value={nombre}
-                    onChange={(e) => setNombre(e.target.value)}
+                    value={nombreResponsable}
+                    onChange={(e) => setNombreResponsable(e.target.value)}
                     className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
                   >
                     <option value="">Seleccione un nombre</option>
@@ -212,7 +254,7 @@ export default function AgregarBomba() {
 
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Serie / Lote
+                  Serie
                 </label>
 
                 <div className="relative">
@@ -220,9 +262,29 @@ export default function AgregarBomba() {
 
                   <input
                     type="text"
-                    value={serieLote}
-                    onChange={(e) => setSerieLote(e.target.value)}
+                    value={serie}
+                    onChange={(e) => setSerie(e.target.value)}
                     placeholder="Ej: SER-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* LOTE */}
+
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Lote
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                    placeholder="Ej: LOT-2026-001"
                     className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
                   />
                 </div>
@@ -238,11 +300,16 @@ export default function AgregarBomba() {
                   <select
                     value={categoria}
                     onChange={(e) => setCategoria(e.target.value)}
-                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                    disabled={!nombreResponsable}
+                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white disabled:bg-slate-100 disabled:cursor-not-allowed"
                   >
-                    <option value="">Seleccione una categoría</option>
+                    <option value="">
+                      {nombreResponsable
+                        ? "Seleccione una categoría"
+                        : "Seleccione primero una máquina"}
+                    </option>
 
-                    {categorias.map((cat) => (
+                    {categoriasFiltradas.map((cat) => (
                       <option key={cat.id} value={cat.id}>
                         {cat.nombre}
                       </option>

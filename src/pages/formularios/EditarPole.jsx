@@ -11,7 +11,9 @@ export default function EditarPole() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
 
   const [recoleccion, setRecoleccion] = useState(false);
   const [recuperacion, setRecuperacion] = useState(false);
@@ -63,9 +65,12 @@ export default function EditarPole() {
         return;
       }
 
-      setNombre(data.nombre);
-      setSerieLote(data.serie_lote);
-      setCategoria(data.categoria_id);
+      // Uso de ?? "" para evitar inputs "no controlados" cuando el valor es null
+      setNombre(data.nombre ?? "");
+      setNombreResponsable(data.nombre_responsable ?? "");
+      setSerie(data.serie ?? "");
+      setLote(data.lote ?? "");
+      setCategoria(data.categoria_id ?? "");
 
       setRecoleccion(data.recoleccion);
       setRecuperacion(data.recuperacion);
@@ -110,21 +115,21 @@ export default function EditarPole() {
     }
 
     try {
-      if (!nombre.trim()) {
+      if (!serie.trim()) {
         Swal.fire({
           icon: "warning",
           title: "Campo requerido",
-          text: "Ingrese el nombre de la máquina",
+          text: "Ingrese la serie",
         });
 
         return;
       }
 
-      if (!serieLote.trim()) {
+      if (!categoria) {
         Swal.fire({
           icon: "warning",
           title: "Campo requerido",
-          text: "Ingrese la serie o lote",
+          text: "Seleccione una categoría",
         });
 
         return;
@@ -135,8 +140,10 @@ export default function EditarPole() {
       const { error } = await supabase
         .from("poles")
         .update({
-          nombre,
-          serie_lote: serieLote,
+          nombre: nombre.trim() || null,
+          nombre_responsable: nombreResponsable.trim() || null,
+          serie,
+          lote,
           categoria_id: Number(categoria),
           recoleccion,
           recuperacion,
@@ -306,7 +313,7 @@ export default function EditarPole() {
       confirmButtonColor: "#0891b2",
     });
 
-    navigate("/poles");
+    navigate("/maquinas/poles");
   };
 
   return (
@@ -328,11 +335,11 @@ export default function EditarPole() {
           <div className="w-28"></div>
         </div>
 
-        <div className="space-y-5">
+        <div className="grid md:grid-cols-2 gap-5">
           <input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre"
+            placeholder="Nombre (opcional)"
             className="
         w-full
         border-2
@@ -348,9 +355,45 @@ export default function EditarPole() {
           />
 
           <input
-            value={serieLote}
-            onChange={(e) => setSerieLote(e.target.value)}
-            placeholder="Serie / Lote"
+            value={nombreResponsable}
+            onChange={(e) => setNombreResponsable(e.target.value)}
+            placeholder="Responsable (opcional)"
+            className="
+        w-full
+        border-2
+        border-slate-200
+        rounded-2xl
+        px-5
+        py-4
+        text-lg
+        outline-none
+        focus:border-cyan-500
+        transition-all
+        "
+          />
+
+          <input
+            value={serie}
+            onChange={(e) => setSerie(e.target.value)}
+            placeholder="Serie"
+            className="
+        w-full
+        border-2
+        border-slate-200
+        rounded-2xl
+        px-5
+        py-4
+        text-lg
+        outline-none
+        focus:border-cyan-500
+        transition-all
+        "
+          />
+
+          <input
+            value={lote}
+            onChange={(e) => setLote(e.target.value)}
+            placeholder="Lote"
             className="
         w-full
         border-2

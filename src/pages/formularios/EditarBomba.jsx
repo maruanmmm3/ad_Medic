@@ -11,7 +11,9 @@ export default function EditarBomba() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
   const [recoleccion, setRecoleccion] = useState(false);
   const [limpieza, setLimpieza] = useState(false);
   const [pruebaCan, setPruebaCan] = useState(false);
@@ -64,7 +66,9 @@ export default function EditarBomba() {
       }
 
       setNombre(data.nombre);
-      setSerieLote(data.serie_lote);
+      setNombreResponsable(data.nombre_responsable);
+      setSerie(data.serie);
+      setLote(data.lote);
       setCategoria(data.categoria_id);
       setRecoleccion(data.recoleccion);
       setLimpieza(data.limpieza);
@@ -121,11 +125,11 @@ export default function EditarBomba() {
         return;
       }
 
-      if (!serieLote.trim()) {
+      if (!serie.trim()) {
         Swal.fire({
           icon: "warning",
           title: "Campo requerido",
-          text: "Ingrese la serie o lote",
+          text: "Ingrese la serie",
         });
 
         return;
@@ -137,7 +141,9 @@ export default function EditarBomba() {
         .from("bombas")
         .update({
           nombre,
-          serie_lote: serieLote,
+          nombre_responsable: nombreResponsable,
+          serie,
+          lote,
           categoria_id: categoria,
           recoleccion,
           limpieza,
@@ -319,7 +325,7 @@ export default function EditarBomba() {
       confirmButtonColor: "#0891b2",
     });
 
-    navigate("/bombas/bombas");
+    navigate("/maquinas/bombas");
   };
 
   return (
@@ -334,14 +340,14 @@ export default function EditarBomba() {
             Volver
           </button>
 
-          <h1 className="text-3xl font-bold text-slate-800">Editar Máquina</h1>
+          <h1 className="text-3xl font-bold text-slate-800">Editar Bomba</h1>
 
           {/* Espacio para equilibrar el diseño */}
 
           <div className="w-28"></div>
         </div>
 
-        <div className="space-y-5">
+        <div className="grid md:grid-cols-2 gap-5">
           <input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
@@ -361,9 +367,45 @@ export default function EditarBomba() {
           />
 
           <input
-            value={serieLote}
-            onChange={(e) => setSerieLote(e.target.value)}
-            placeholder="Serie / Lote"
+            value={nombreResponsable}
+            onChange={(e) => setNombreResponsable(e.target.value)}
+            placeholder="Responsable"
+            className="
+        w-full
+        border-2
+        border-slate-200
+        rounded-2xl
+        px-5
+        py-4
+        text-lg
+        outline-none
+        focus:border-cyan-500
+        transition-all
+        "
+          />
+
+          <input
+            value={serie}
+            onChange={(e) => setSerie(e.target.value)}
+            placeholder="Serie"
+            className="
+        w-full
+        border-2
+        border-slate-200
+        rounded-2xl
+        px-5
+        py-4
+        text-lg
+        outline-none
+        focus:border-cyan-500
+        transition-all
+        "
+          />
+
+          <input
+            value={lote}
+            onChange={(e) => setLote(e.target.value)}
+            placeholder="Lote"
             className="
         w-full
         border-2

@@ -2,13 +2,22 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
+import {
+  FaHeartbeat,
+  FaArrowLeft,
+  FaSave,
+  FaBarcode,
+  FaUser,
+} from "react-icons/fa";
 
 export default function AgregarFuentePoder() {
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
+  const [categoriaCable, setCategoriaCable] = useState(""); // NUEVO
   const [categoria, setCategoria] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -59,16 +68,17 @@ export default function AgregarFuentePoder() {
   }, []);
 
   const guardar = async () => {
-    if (!nombre || !serieLote || !categoria) {
+    if (!serie.trim() || !categoria) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
-        text: "Debes completar todos los campos",
+        text: "Debes completar Serie y Categoría",
         confirmButtonColor: "#0891b2",
       });
 
       return;
     }
+    // ...resto igual
 
     if (!usuarioId) {
       Swal.fire({
@@ -83,10 +93,13 @@ export default function AgregarFuentePoder() {
 
     const { error } = await supabase.from("fuentespoder").insert([
       {
-        nombre,
-        serie_lote: serieLote,
-        categoria_id: categoria,
-        usuario_id: usuarioId, // Asignar el ID del usuario actual
+        nombre: nombre.trim() || null,
+        nombre_responsable: nombreResponsable.trim() || null,
+        serie,
+        lote,
+        categoria_id: Number(categoria),
+        categoria_cable: categoriaCable, // NUEVO
+        usuario_id: usuarioId,
         fecha: new Date().toISOString(),
         recoleccion: false,
         reparacion: false,
@@ -102,7 +115,7 @@ export default function AgregarFuentePoder() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo registrar la Fuente de Poder",
+        text: error.message,
       });
 
       setLoading(false);
@@ -156,7 +169,7 @@ export default function AgregarFuentePoder() {
           </div>
 
           <button
-            onClick={() => navigate("maquinas/fuentespoder")}
+            onClick={() => navigate("/maquinas/fuentespoder")}
             className="flex items-center gap-2 bg-slate-700 hover:bg-slate-800 text-white px-5 py-3 rounded-xl shadow-lg transition"
           >
             <FaArrowLeft />
@@ -185,7 +198,8 @@ export default function AgregarFuentePoder() {
               {/* NOMBRE */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre
+                  Nombre{" "}
+                  <span className="text-slate-400 font-normal">(opcional)</span>
                 </label>
 
                 <input
@@ -197,10 +211,30 @@ export default function AgregarFuentePoder() {
                 />
               </div>
 
+              {/* NOMBRE RESPONSABLE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Nombre del Responsable{" "}
+                  <span className="text-slate-400 font-normal">(opcional)</span>
+                </label>
+
+                <div className="relative">
+                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={nombreResponsable}
+                    onChange={(e) => setNombreResponsable(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
+
               {/* SERIE */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Serie / Lote
+                  Serie
                 </label>
 
                 <div className="relative">
@@ -208,9 +242,28 @@ export default function AgregarFuentePoder() {
 
                   <input
                     type="text"
-                    value={serieLote}
-                    onChange={(e) => setSerieLote(e.target.value)}
+                    value={serie}
+                    onChange={(e) => setSerie(e.target.value)}
                     placeholder="Ej: FP-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* LOTE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Lote
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                    placeholder="Ej: LOT-2026-001"
                     className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
                   />
                 </div>
@@ -224,7 +277,10 @@ export default function AgregarFuentePoder() {
 
                 <select
                   value={categoria}
-                  onChange={(e) => setCategoria(e.target.value)}
+                  onChange={(e) => {
+                    setCategoria(e.target.value);
+                    setCategoriaCable(""); // reinicia el cable al cambiar de categoría
+                  }}
                   className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
                 >
                   <option value="">Seleccione una categoría</option>
@@ -236,6 +292,25 @@ export default function AgregarFuentePoder() {
                   ))}
                 </select>
               </div>
+
+              {/* CATEGORIA CABLE - solo aparece si ya se eligió categoría */}
+              {categoria && (
+                <div>
+                  <label className="block text-slate-700 font-semibold mb-2">
+                    Categoría de Cable
+                  </label>
+
+                  <select
+                    value={categoriaCable}
+                    onChange={(e) => setCategoriaCable(e.target.value)}
+                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  >
+                    <option value="">Seleccione un tipo de cable</option>
+                    <option value="Cable Schuko(EU)">Cable Schuko(EU)</option>
+                    <option value="Cable Nema(US)">Cable Nema(US)</option>
+                  </select>
+                </div>
+              )}
             </div>
 
             {/* ESTADO */}

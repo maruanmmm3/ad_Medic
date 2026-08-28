@@ -2,13 +2,20 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import { FaBatteryHalf, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
+import {
+  FaBatteryHalf,
+  FaArrowLeft,
+  FaSave,
+  FaBarcode,
+  FaUser,
+} from "react-icons/fa";
 
 export default function AgregarBateria() {
   const navigate = useNavigate();
 
-  const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
   const [categoria, setCategoria] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [loading, setLoading] = useState(false);
@@ -40,11 +47,11 @@ export default function AgregarBateria() {
   /* Fin obtener datos del usuario */
 
   const guardar = async () => {
-    if (!nombre || !serieLote || !categoria) {
+    if (!serie.trim() || !categoria) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
-        text: "Debes completar todos los campos",
+        text: "Debes completar Serie y Categoría",
         confirmButtonColor: "#0891b2",
       });
       return;
@@ -63,13 +70,15 @@ export default function AgregarBateria() {
 
     const { error } = await supabase.from("baterias").insert([
       {
-        nombre,
-        serie_lote: serieLote,
+        nombre_responsable: nombreResponsable.trim() || null,
+        serie,
+        lote,
         categoria_id: Number(categoria),
         usuario_id: usuarioId, // Asignar el ID del usuario actual
         fecha: new Date().toISOString(),
         mantenimiento: false,
         prueba: false,
+        cargatotal: false,
       },
     ]);
 
@@ -178,35 +187,21 @@ export default function AgregarBateria() {
           {/* CONTENIDO */}
           <div className="p-8">
             <div className="grid md:grid-cols-2 gap-8">
-              {/* NOMBRE */}
+              {/* NOMBRE RESPONSABLE */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre de la Batería
-                </label>
-
-                <input
-                  type="text"
-                  value={nombre}
-                  onChange={(e) => setNombre(e.target.value)}
-                  placeholder="Ej: Batería UPS APC"
-                  className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition"
-                />
-              </div>
-
-              {/* SERIE */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-2">
-                  Serie / Lote
+                  Nombre del Responsable{" "}
+                  <span className="text-slate-400 font-normal">(opcional)</span>
                 </label>
 
                 <div className="relative">
-                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
 
                   <input
                     type="text"
-                    value={serieLote}
-                    onChange={(e) => setSerieLote(e.target.value)}
-                    placeholder="Ej: BAT-2026-001"
+                    value={nombreResponsable}
+                    onChange={(e) => setNombreResponsable(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
                     className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
                   />
                 </div>
@@ -232,6 +227,44 @@ export default function AgregarBateria() {
                   ))}
                 </select>
               </div>
+
+              {/* SERIE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Serie
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={serie}
+                    onChange={(e) => setSerie(e.target.value)}
+                    placeholder="Ej: BAT-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* LOTE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Lote
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                    placeholder="Ej: LOT-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
             </div>
 
             {/* ESTADO */}
@@ -242,7 +275,8 @@ export default function AgregarBateria() {
 
               <div className="bg-cyan-50 border border-cyan-100 rounded-2xl p-6">
                 <p className="text-slate-600">
-                  Los procesos de mantenimiento y prueba iniciarán como:
+                  Los procesos de mantenimiento, prueba y carga total iniciarán
+                  como:
                 </p>
 
                 <div className="mt-4 inline-flex items-center gap-2 bg-red-100 text-red-700 px-4 py-2 rounded-full font-semibold">

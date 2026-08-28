@@ -11,7 +11,9 @@ export default function EditarFuentespoder() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
 
   const [recoleccion, setRecoleccion] = useState(false);
   const [reparacion, setReparacion] = useState(false);
@@ -21,6 +23,7 @@ export default function EditarFuentespoder() {
 
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
+  const [categoriaCable, setCategoriaCable] = useState(""); // NUEVO
 
   const [fuenteOriginal, setFuenteOriginal] = useState(null); //Historial
 
@@ -66,8 +69,10 @@ export default function EditarFuentespoder() {
         return;
       }
 
-      setNombre(data.nombre || "");
-      setSerieLote(data.serie_lote || "");
+      setNombre(data.nombre ?? "");
+      setNombreResponsable(data.nombre_responsable ?? "");
+      setSerie(data.serie ?? "");
+      setLote(data.lote ?? "");
 
       setRecoleccion(data.recoleccion || false);
       setReparacion(data.reparacion || false);
@@ -76,6 +81,7 @@ export default function EditarFuentespoder() {
       setEmpaquetado(data.empaquetado || false);
 
       setCategoria(data.categoria_id ? String(data.categoria_id) : "");
+      setCategoriaCable(data.categoria_cable ?? ""); // NUEVO
       setFuenteOriginal(data);
     };
 
@@ -117,11 +123,11 @@ export default function EditarFuentespoder() {
       return;
     }
 
-    if (!nombre || !serieLote) {
+    if (!serie.trim() || !categoria) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
-        text: "Nombre y serie son obligatorios",
+        text: "Serie y Categoría",
       });
       return;
     }
@@ -131,9 +137,12 @@ export default function EditarFuentespoder() {
     const { error } = await supabase
       .from("fuentespoder")
       .update({
-        nombre,
-        serie_lote: serieLote,
+        nombre: nombre.trim() || null,
+        nombre_responsable: nombreResponsable.trim() || null,
+        serie,
+        lote: lote.trim() || null,
         categoria_id: Number(categoria),
+        categoria_cable: categoriaCable,
 
         recoleccion,
         reparacion,
@@ -282,18 +291,32 @@ export default function EditarFuentespoder() {
         </div>
 
         {/* INPUTS */}
-        <div className="space-y-5">
+        <div className="grid md:grid-cols-2 gap-5">
           <input
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre"
+            placeholder="Nombre (opcional)"
             className="w-full border-2 rounded-2xl px-5 py-4"
           />
 
           <input
-            value={serieLote}
-            onChange={(e) => setSerieLote(e.target.value)}
-            placeholder="Serie / Lote"
+            value={nombreResponsable}
+            onChange={(e) => setNombreResponsable(e.target.value)}
+            placeholder="Responsable (opcional)"
+            className="w-full border-2 rounded-2xl px-5 py-4"
+          />
+
+          <input
+            value={serie}
+            onChange={(e) => setSerie(e.target.value)}
+            placeholder="Serie"
+            className="w-full border-2 rounded-2xl px-5 py-4"
+          />
+
+          <input
+            value={lote}
+            onChange={(e) => setLote(e.target.value)}
+            placeholder="Lote (opcional)"
             className="w-full border-2 rounded-2xl px-5 py-4"
           />
         </div>
@@ -315,6 +338,23 @@ export default function EditarFuentespoder() {
             ))}
           </select>
         </div>
+
+        {/* CATEGORÍA DE CABLE - solo si hay categoría seleccionada */}
+        {categoria && (
+          <div className="mt-5">
+            <label className="font-semibold">Categoría de Cable</label>
+
+            <select
+              value={categoriaCable}
+              onChange={(e) => setCategoriaCable(e.target.value)}
+              className="w-full border-2 rounded-2xl px-5 py-4 mt-2"
+            >
+              <option value="">Seleccione un tipo de cable</option>
+              <option value="Cable Schuko(EU)">Cable Schuko(EU)</option>
+              <option value="Cable Nema(US)">Cable Nema(US)</option>
+            </select>
+          </div>
+        )}
 
         {/* ESTADOS */}
         <h2 className="text-xl font-semibold mt-10 mb-5">

@@ -244,6 +244,13 @@ function PanelControl() {
                 >
                   Baterías
                 </Link>
+                <Link
+                  to="/maquinas/powercord"
+                  className={subLinkClasses("/maquinas/powercord")}
+                  onClick={() => setOpen(false)}
+                >
+                  Power Cord
+                </Link>
               </div>
             )}
           </div>
@@ -307,8 +314,8 @@ function PanelControl() {
             Reportes
           </Link>
           <Link
-            to="/importacion"
-            className={linkClasses("/importacion")}
+            to="/importacionRegistro"
+            className={linkClasses("/importacionRegistro")}
             onClick={() => setOpen(false)}
           >
             <FaFileImport className="text-lg" />

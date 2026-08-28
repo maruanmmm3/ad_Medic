@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
-  FaBatteryHalf,
+  FaPlug,
   FaCheckCircle,
   FaTimesCircle,
   FaArrowLeft,
@@ -12,8 +12,8 @@ import {
 } from "react-icons/fa";
 import Swal from "sweetalert2";
 
-export default function Baterias() {
-  const [baterias, setBaterias] = useState([]);
+export default function PowerCord() {
+  const [powercords, setPowercords] = useState([]);
   const [loading, setLoading] = useState(true);
 
   const [page, setPage] = useState(1);
@@ -22,7 +22,6 @@ export default function Baterias() {
 
   // Filtros
   const [filtroResponsable, setFiltroResponsable] = useState("");
-  const [filtroSerie, setFiltroSerie] = useState("");
   const [filtroLote, setFiltroLote] = useState("");
   const [filtroFecha, setFiltroFecha] = useState("");
 
@@ -36,7 +35,7 @@ export default function Baterias() {
     const to = from + pageSize - 1;
 
     let query = supabase
-      .from("baterias")
+      .from("powercord")
       .select("*, categorias(nombre)", { count: "exact" })
       .order("fecha", { ascending: false });
 
@@ -47,18 +46,12 @@ export default function Baterias() {
       );
     }
 
-    if (filtroSerie.trim()) {
-      query = query.ilike("serie", `%${filtroSerie.trim()}%`);
-    }
-
     if (filtroLote.trim()) {
       query = query.ilike("lote", `%${filtroLote.trim()}%`);
     }
 
     if (filtroFecha) {
-      const inicio = `${filtroFecha}T00:00:00`;
-      const fin = `${filtroFecha}T23:59:59`;
-      query = query.gte("fecha", inicio).lte("fecha", fin);
+      query = query.eq("fecha", filtroFecha);
     }
 
     const { data, error, count } = await query.range(from, to);
@@ -69,7 +62,7 @@ export default function Baterias() {
       return;
     }
 
-    setBaterias(data);
+    setPowercords(data);
     setTotal(count || 0);
     setLoading(false);
   };
@@ -77,12 +70,12 @@ export default function Baterias() {
   useEffect(() => {
     obtenerDatos(page);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [page, filtroResponsable, filtroSerie, filtroLote, filtroFecha]);
+  }, [page, filtroResponsable, filtroLote, filtroFecha]);
 
   useEffect(() => {
     if (location.state?.mensaje) {
       Swal.fire({
-        title: "🔋 Éxito",
+        title: "🔌 Éxito",
         text: location.state.mensaje,
         icon: "success",
         confirmButtonColor: "#0891b2",
@@ -98,14 +91,10 @@ export default function Baterias() {
   const totalPages = Math.ceil(total / pageSize);
 
   const hayFiltros =
-    filtroResponsable.trim() ||
-    filtroSerie.trim() ||
-    filtroLote.trim() ||
-    filtroFecha;
+    filtroResponsable.trim() || filtroLote.trim() || filtroFecha;
 
   const limpiarFiltros = () => {
     setFiltroResponsable("");
-    setFiltroSerie("");
     setFiltroLote("");
     setFiltroFecha("");
     setPage(1);
@@ -118,11 +107,8 @@ export default function Baterias() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "--";
-    return new Date(fecha).toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    const [year, month, day] = fecha.split("-");
+    return `${day}/${month}/${year}`;
   };
 
   const Estado = ({ valor }) => {
@@ -140,9 +126,9 @@ export default function Baterias() {
   };
 
   const estados = [
-    { label: "Mantenimiento", key: "mantenimiento" },
+    { label: "Limpieza", key: "limpieza" },
     { label: "Prueba", key: "prueba" },
-    { label: "Carga Total", key: "cargatotal" },
+    { label: "Empaque", key: "empaque" },
   ];
 
   return (
@@ -152,15 +138,15 @@ export default function Baterias() {
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
           <div className="flex items-center gap-3">
             <div className="bg-cyan-600 p-3 sm:p-4 rounded-2xl shadow-lg shrink-0">
-              <FaBatteryHalf className="text-white text-2xl sm:text-3xl" />
+              <FaPlug className="text-white text-2xl sm:text-3xl" />
             </div>
 
             <div>
               <h1 className="text-2xl sm:text-3xl md:text-4xl font-bold text-slate-800">
-                Gestión de Baterías
+                Gestión de PowerCord
               </h1>
               <p className="text-slate-500 mt-1 text-sm sm:text-base">
-                Seguimiento del proceso de mantenimiento y pruebas.
+                Seguimiento del proceso de mantenimiento.
               </p>
             </div>
           </div>
@@ -175,7 +161,7 @@ export default function Baterias() {
             </button>
 
             <button
-              onClick={() => navigate("/agregar-bateria")}
+              onClick={() => navigate("/agregar-powercord")}
               className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 sm:px-5 py-3 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl shadow-md transition text-sm sm:text-base"
             >
               <FaPlus />
@@ -194,20 +180,12 @@ export default function Baterias() {
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
           <input
             type="text"
             value={filtroResponsable}
             onChange={handleFiltro(setFiltroResponsable)}
             placeholder="Buscar por responsable"
-            className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-cyan-500 transition"
-          />
-
-          <input
-            type="text"
-            value={filtroSerie}
-            onChange={handleFiltro(setFiltroSerie)}
-            placeholder="Buscar por serie"
             className="w-full border-2 border-slate-200 rounded-xl px-4 py-2.5 text-sm outline-none focus:border-cyan-500 transition"
           />
 
@@ -238,15 +216,15 @@ export default function Baterias() {
         )}
       </div>
 
-      {/* TABLA */}
+      {/* TARJETA */}
       <div className="bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-200">
         {loading ? (
           <div className="p-10 text-center text-slate-500">
-            ⏳ Cargando baterías...
+            ⏳ Cargando PowerCord...
           </div>
-        ) : baterias.length === 0 ? (
+        ) : powercords.length === 0 ? (
           <div className="p-10 text-center text-slate-500">
-            No se encontraron baterías con esos filtros.
+            No se encontraron registros con esos filtros.
           </div>
         ) : (
           <>
@@ -256,53 +234,47 @@ export default function Baterias() {
                 <thead>
                   <tr className="bg-cyan-700 text-white text-sm uppercase">
                     <th className="px-6 py-5 text-left">Responsable</th>
-                    <th className="px-6 py-5 text-left">Serie</th>
                     <th className="px-6 py-5 text-left">Lote</th>
                     <th className="px-6 py-5 text-left">Categoría</th>
                     <th className="px-6 py-5 text-left">Fecha</th>
-                    <th className="px-4 py-5 text-center">Mantenimiento</th>
+                    <th className="px-4 py-5 text-center">Limpieza</th>
                     <th className="px-4 py-5 text-center">Prueba</th>
-                    <th className="px-4 py-5 text-center">Carga Total</th>
+                    <th className="px-4 py-5 text-center">Empaque</th>
                   </tr>
                 </thead>
 
                 <tbody>
-                  {baterias.map((b, index) => (
+                  {powercords.map((pc, index) => (
                     <tr
-                      key={b.id}
-                      onClick={() => navigate(`/editar-bateria/${b.id}`)}
-                      className={`border-b hover:bg-cyan-50 transition cursor-pointer ${
-                        index % 2 === 0 ? "bg-white" : "bg-slate-50"
-                      }`}
+                      key={pc.id}
+                      onClick={() => navigate(`/editar-powercord/${pc.id}`)}
+                      className={`border-b hover:bg-cyan-50 transition cursor-pointer
+                      ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >
                       <td className="px-6 py-5 font-bold">
-                        {b.nombre_responsable || "--"}
+                        {pc.nombre_responsable || "--"}
                       </td>
-
-                      <td className="px-6 py-5">{b.serie}</td>
-                      <td className="px-6 py-5">{b.lote}</td>
+                      <td className="px-6 py-5">{pc.lote || "-"}</td>
                       <td className="px-6 py-5">
-                        {b.categorias?.nombre || "--"}
+                        {pc.categorias?.nombre || "--"}
                       </td>
                       <td className="px-6 py-5 whitespace-nowrap">
-                        {formatearFecha(b.fecha)}
+                        {formatearFecha(pc.fecha)}
                       </td>
 
                       <td className="px-3 py-5 text-center">
                         <div className="flex justify-center">
-                          <Estado valor={b.mantenimiento} />
+                          <Estado valor={pc.limpieza} />
                         </div>
                       </td>
-
                       <td className="px-3 py-5 text-center">
                         <div className="flex justify-center">
-                          <Estado valor={b.prueba} />
+                          <Estado valor={pc.prueba} />
                         </div>
                       </td>
-
                       <td className="px-3 py-5 text-center">
                         <div className="flex justify-center">
-                          <Estado valor={b.cargatotal} />
+                          <Estado valor={pc.empaque} />
                         </div>
                       </td>
                     </tr>
@@ -313,33 +285,29 @@ export default function Baterias() {
 
             {/* VISTA TARJETAS - celular */}
             <div className="md:hidden divide-y divide-slate-100">
-              {baterias.map((b) => (
+              {powercords.map((pc) => (
                 <div
-                  key={b.id}
-                  onClick={() => navigate(`/editar-bateria/${b.id}`)}
+                  key={pc.id}
+                  onClick={() => navigate(`/editar-powercord/${pc.id}`)}
                   className="p-4 active:bg-cyan-50 transition cursor-pointer"
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-bold text-slate-800 text-base">
-                      {b.nombre_responsable || "--"}
+                      {pc.nombre_responsable || "--"}
                     </h3>
                     <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
-                      {formatearFecha(b.fecha)}
+                      {formatearFecha(pc.fecha)}
                     </span>
                   </div>
 
                   <div className="mt-2 grid grid-cols-2 gap-x-3 gap-y-1 text-sm text-slate-600">
                     <p>
-                      <span className="text-slate-400">Serie:</span>{" "}
-                      {b.serie || "-"}
-                    </p>
-                    <p>
                       <span className="text-slate-400">Lote:</span>{" "}
-                      {b.lote || "-"}
+                      {pc.lote || "-"}
                     </p>
                     <p>
                       <span className="text-slate-400">Categoría:</span>{" "}
-                      {b.categorias?.nombre || "-"}
+                      {pc.categorias?.nombre || "-"}
                     </p>
                   </div>
 
@@ -349,7 +317,7 @@ export default function Baterias() {
                         <span className="text-xs text-slate-400">
                           {e.label}:
                         </span>
-                        <Estado valor={b[e.key]} />
+                        <Estado valor={pc[e.key]} />
                       </div>
                     ))}
                   </div>

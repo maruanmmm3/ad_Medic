@@ -11,11 +11,13 @@ export default function EditarBateria() {
 
   const [guardando, setGuardando] = useState(false);
 
-  const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
 
   const [mantenimiento, setMantenimiento] = useState(false);
   const [prueba, setPrueba] = useState(false);
+  const [cargatotal, setCargatotal] = useState(false);
 
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
@@ -60,12 +62,14 @@ export default function EditarBateria() {
         return;
       }
 
-      setNombre(data.nombre);
-      setSerieLote(data.serie_lote);
+      setNombreResponsable(data.nombre_responsable ?? "");
+      setSerie(data.serie ?? "");
+      setLote(data.lote ?? "");
       setCategoria(data.categoria_id ?? "");
 
-      setMantenimiento(data.mantenimiento);
-      setPrueba(data.prueba);
+      setMantenimiento(data.mantenimiento || false);
+      setPrueba(data.prueba || false);
+      setCargatotal(data.cargatotal || false);
       setBateriaOriginal(data); //Historial
     };
 
@@ -103,20 +107,20 @@ export default function EditarBateria() {
     }
 
     try {
-      if (!nombre.trim()) {
+      if (!serie.trim()) {
         Swal.fire({
           icon: "warning",
           title: "Campo requerido",
-          text: "Ingrese el nombre de la batería",
+          text: "Ingrese la serie",
         });
         return;
       }
 
-      if (!serieLote.trim()) {
+      if (!categoria) {
         Swal.fire({
           icon: "warning",
           title: "Campo requerido",
-          text: "Ingrese la serie o lote",
+          text: "Seleccione una categoría",
         });
         return;
       }
@@ -126,11 +130,13 @@ export default function EditarBateria() {
       const { error } = await supabase
         .from("baterias")
         .update({
-          nombre,
-          serie_lote: serieLote,
-          categoria_id: categoria ? Number(categoria) : null,
+          nombre_responsable: nombreResponsable.trim() || null,
+          serie,
+          lote,
+          categoria_id: Number(categoria),
           mantenimiento,
           prueba,
+          cargatotal,
         })
         .eq("id", id);
 
@@ -155,6 +161,15 @@ export default function EditarBateria() {
             tabla: "baterias",
             registro_id: Number(id),
             actividad: "Prueba",
+            usuario_id: usuarioId,
+          });
+        }
+
+        if (!bateriaOriginal.cargatotal && cargatotal) {
+          actividades.push({
+            tabla: "baterias",
+            registro_id: Number(id),
+            actividad: "Carga Total",
             usuario_id: usuarioId,
           });
         }
@@ -259,16 +274,23 @@ export default function EditarBateria() {
         {/* DATOS */}
         <div className="space-y-5">
           <input
-            value={nombre}
-            onChange={(e) => setNombre(e.target.value)}
-            placeholder="Nombre"
+            value={nombreResponsable}
+            onChange={(e) => setNombreResponsable(e.target.value)}
+            placeholder="Responsable (opcional)"
             className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-lg outline-none focus:border-cyan-500"
           />
 
           <input
-            value={serieLote}
-            onChange={(e) => setSerieLote(e.target.value)}
-            placeholder="Serie / Lote"
+            value={serie}
+            onChange={(e) => setSerie(e.target.value)}
+            placeholder="Serie"
+            className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-lg outline-none focus:border-cyan-500"
+          />
+
+          <input
+            value={lote}
+            onChange={(e) => setLote(e.target.value)}
+            placeholder="Lote"
             className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 text-lg outline-none focus:border-cyan-500"
           />
         </div>
@@ -299,7 +321,7 @@ export default function EditarBateria() {
           Estado del proceso
         </h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           <EstadoCard
             titulo="Mantenimiento"
             activo={mantenimiento}
@@ -307,6 +329,12 @@ export default function EditarBateria() {
           />
 
           <EstadoCard titulo="Prueba" activo={prueba} setActivo={setPrueba} />
+
+          <EstadoCard
+            titulo="Carga Total"
+            activo={cargatotal}
+            setActivo={setCargatotal}
+          />
         </div>
 
         {/* BOTONES */}

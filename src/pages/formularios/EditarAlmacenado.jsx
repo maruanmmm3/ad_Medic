@@ -2,7 +2,14 @@ import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import { FaWarehouse, FaArrowLeft, FaSave } from "react-icons/fa";
+import {
+  FaWarehouse,
+  FaArrowLeft,
+  FaSave,
+  FaBarcode,
+  FaUser,
+  FaTrash,
+} from "react-icons/fa";
 
 const nombresDisponibles = [
   "Space",
@@ -20,7 +27,9 @@ export default function EditarAlmacenado() {
   const { id } = useParams();
 
   const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
   const [estado, setEstado] = useState("");
@@ -92,11 +101,13 @@ export default function EditarAlmacenado() {
       return;
     }
 
-    setNombre(data.nombre || "");
-    setSerieLote(data.serie_lote || "");
-    setCategoria(data.categoria_id || "");
-    setEstado(data.estado || "");
-    setNota(data.nota || "");
+    setNombre(data.nombre ?? "");
+    setNombreResponsable(data.nombre_responsable ?? "");
+    setSerie(data.serie ?? "");
+    setLote(data.lote ?? "");
+    setCategoria(data.categoria_id ? String(data.categoria_id) : "");
+    setEstado(data.estado ?? "");
+    setNota(data.nota ?? "");
     setCargando(false);
   };
 
@@ -127,11 +138,22 @@ export default function EditarAlmacenado() {
   };
 
   const actualizar = async () => {
-    if (!nombre || !estado) {
+    if (!nombre || !estado || !serie.trim() || !lote.trim()) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
-        text: "Debes completar Nombre y Estado",
+        text: "Debes completar Nombre, Serie, Lote y Estado",
+        confirmButtonColor: "#0891b2",
+      });
+
+      return;
+    }
+
+    if (mostrarCategoria && !categoria) {
+      Swal.fire({
+        icon: "warning",
+        title: "Campo requerido",
+        text: "Debes seleccionar una categoría",
         confirmButtonColor: "#0891b2",
       });
 
@@ -153,10 +175,12 @@ export default function EditarAlmacenado() {
       .from("almacenados")
       .update({
         nombre,
-        serie_lote: serieLote || null,
-        categoria_id: mostrarCategoria ? categoria || null : null,
+        nombre_responsable: nombreResponsable.trim() || null,
+        serie,
+        lote,
+        categoria_id: mostrarCategoria ? Number(categoria) : null,
         estado,
-        nota: notaHabilitada ? nota : null,
+        nota: notaHabilitada ? nota.trim() || null : null,
       })
       .eq("id", id);
 
@@ -168,7 +192,7 @@ export default function EditarAlmacenado() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo actualizar el equipo",
+        text: error.message,
       });
 
       return;
@@ -187,6 +211,41 @@ export default function EditarAlmacenado() {
         mensaje: "Equipo actualizado correctamente",
       },
     });
+  };
+
+  const eliminar = async () => {
+    const resultado = await Swal.fire({
+      title: "¿Eliminar equipo?",
+      text: "Esta acción no se puede deshacer.",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#dc2626",
+      cancelButtonColor: "#64748b",
+      confirmButtonText: "Sí, eliminar",
+      cancelButtonText: "Cancelar",
+    });
+
+    if (!resultado.isConfirmed) return;
+
+    const { error } = await supabase.from("almacenados").delete().eq("id", id);
+
+    if (error) {
+      Swal.fire({
+        icon: "error",
+        title: "Error",
+        text: "No se pudo eliminar el equipo",
+      });
+      return;
+    }
+
+    await Swal.fire({
+      icon: "success",
+      title: "Eliminado",
+      text: "El equipo fue eliminado correctamente",
+      confirmButtonColor: "#0891b2",
+    });
+
+    navigate("/maquinas/almacenados");
   };
 
   if (verificandoSesion || cargando) {
@@ -272,19 +331,62 @@ export default function EditarAlmacenado() {
                 </div>
               </div>
 
-              {/* SERIE / LOTE */}
+              {/* NOMBRE RESPONSABLE */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Serie / Lote
+                  Nombre del Responsable{" "}
+                  <span className="text-slate-400 font-normal">(opcional)</span>
                 </label>
 
-                <input
-                  type="text"
-                  value={serieLote}
-                  onChange={(e) => setSerieLote(e.target.value)}
-                  placeholder="Ingrese serie o lote"
-                  className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
-                />
+                <div className="relative">
+                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={nombreResponsable}
+                    onChange={(e) => setNombreResponsable(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* SERIE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Serie
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={serie}
+                    onChange={(e) => setSerie(e.target.value)}
+                    placeholder="Ej: SER-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* LOTE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Lote
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                    placeholder="Ej: LOT-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  />
+                </div>
               </div>
 
               {/* CATEGORÍA - se oculta dinámicamente */}
@@ -303,7 +405,7 @@ export default function EditarAlmacenado() {
                       <option value="">Seleccione una categoría</option>
 
                       {categorias.map((cat) => (
-                        <option key={cat.id} value={cat.id}>
+                        <option key={cat.id} value={String(cat.id)}>
                           {cat.nombre}
                         </option>
                       ))}
@@ -362,7 +464,15 @@ export default function EditarAlmacenado() {
 
             {/* BOTONES */}
 
-            <div className="flex justify-end gap-4 mt-10">
+            <div className="flex flex-col sm:flex-row justify-end gap-4 mt-10">
+              <button
+                onClick={eliminar}
+                className="flex items-center justify-center gap-2 bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded-xl shadow-lg transition"
+              >
+                <FaTrash />
+                Eliminar
+              </button>
+
               <button
                 onClick={() => navigate("/maquinas/almacenados")}
                 className="px-6 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
@@ -373,7 +483,7 @@ export default function EditarAlmacenado() {
               <button
                 onClick={actualizar}
                 disabled={loading}
-                className="flex items-center gap-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl shadow-lg transition"
+                className="flex items-center justify-center gap-3 bg-cyan-600 hover:bg-cyan-700 disabled:bg-slate-400 text-white px-8 py-3 rounded-xl shadow-lg transition"
               >
                 <FaSave />
                 {loading ? "Guardando..." : "Guardar Cambios"}

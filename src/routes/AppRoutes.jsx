@@ -20,9 +20,12 @@ import EditarBateria from "../pages/formularios/EditarBateria";
 import Actividades from "../pages/Actividades";
 import Almacenados from "../pages/Almacenados";
 import EditarAlmacenado from "../pages/formularios/EditarAlmacenado";
+import PowerCord from "../pages/PowerCord";
+import AgregarPowerCord from "../pages/formularios/AgregarPowerCord";
+import EditarPowerCord from "../pages/formularios/EditarPowerCord";
 import Configuracion from "../pages/Configuracion";
 import Reportes from "../pages/Reportes";
-import Importacion from "../pages/Importacion";
+import ImportacionRegistro from "../pages/ImportacionRegistro";
 
 function AppRoutes() {
   return (
@@ -166,6 +169,30 @@ function AppRoutes() {
         }
       />
       <Route
+        path="/maquinas/powercord"
+        element={
+          <ProtectedRoute>
+            <PowerCord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/agregar-powercord"
+        element={
+          <ProtectedRoute>
+            <AgregarPowerCord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/editar-powercord/:id"
+        element={
+          <ProtectedRoute>
+            <EditarPowerCord />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/reportes"
         element={
           <ProtectedRoute>
@@ -174,10 +201,10 @@ function AppRoutes() {
         }
       />
       <Route
-        path="/importacion"
+        path="/importacionRegistro"
         element={
           <ProtectedRoute>
-            <Importacion />
+            <ImportacionRegistro />
           </ProtectedRoute>
         }
       />

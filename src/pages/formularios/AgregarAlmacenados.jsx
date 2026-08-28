@@ -2,14 +2,15 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import { FaWarehouse, FaArrowLeft, FaSave } from "react-icons/fa";
+import {
+  FaWarehouse,
+  FaArrowLeft,
+  FaSave,
+  FaBarcode,
+  FaUser,
+} from "react-icons/fa";
 
-const nombresDisponibles = [
-  "Space",
-  "Space Plus",
-  "Compact Plus",
-  "Enteroport",
-];
+const nombresDisponibles = ["Space", "Space Plus"];
 const estadosDisponibles = ["Operativa", "Inoperativa"];
 
 // Nombres para los cuales la categoría se oculta dinámicamente
@@ -19,7 +20,9 @@ export default function AgregarAlmacenados() {
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
-  const [serieLote, setSerieLote] = useState("");
+  const [nombreResponsable, setNombreResponsable] = useState("");
+  const [serie, setSerie] = useState("");
+  const [lote, setLote] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
   const [estado, setEstado] = useState("");
@@ -97,11 +100,22 @@ export default function AgregarAlmacenados() {
   };
 
   const guardar = async () => {
-    if (!nombre || !estado) {
+    if (!nombre || !estado || !serie.trim() || !lote.trim()) {
       Swal.fire({
         icon: "warning",
         title: "Campos incompletos",
-        text: "Debes completar Nombre y Estado",
+        text: "Debes completar Nombre, Serie, Lote y Estado",
+        confirmButtonColor: "#0891b2",
+      });
+
+      return;
+    }
+
+    if (mostrarCategoria && !categoria) {
+      Swal.fire({
+        icon: "warning",
+        title: "Campo requerido",
+        text: "Debes seleccionar una categoría",
         confirmButtonColor: "#0891b2",
       });
 
@@ -122,10 +136,12 @@ export default function AgregarAlmacenados() {
     const { error } = await supabase.from("almacenados").insert([
       {
         nombre,
-        serie_lote: serieLote || null,
-        categoria_id: mostrarCategoria ? categoria || null : null,
+        nombre_responsable: nombreResponsable.trim() || null,
+        serie,
+        lote,
+        categoria_id: mostrarCategoria ? Number(categoria) : null,
         estado,
-        nota: notaHabilitada ? nota : null,
+        nota: notaHabilitada ? nota.trim() || null : null,
         usuario_id: usuarioId,
         fecha: new Date().toISOString(),
       },
@@ -139,7 +155,7 @@ export default function AgregarAlmacenados() {
       Swal.fire({
         icon: "error",
         title: "Error",
-        text: "No se pudo registrar el equipo",
+        text: error.message,
       });
 
       return;
@@ -244,19 +260,62 @@ export default function AgregarAlmacenados() {
                 </div>
               </div>
 
-              {/* SERIE / LOTE */}
+              {/* NOMBRE RESPONSABLE */}
               <div>
                 <label className="block text-slate-700 font-semibold mb-2">
-                  Serie / Lote
+                  Nombre del Responsable{" "}
+                  <span className="text-slate-400 font-normal">(opcional)</span>
                 </label>
 
-                <input
-                  type="text"
-                  value={serieLote}
-                  onChange={(e) => setSerieLote(e.target.value)}
-                  placeholder="Ingrese serie o lote"
-                  className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
-                />
+                <div className="relative">
+                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={nombreResponsable}
+                    onChange={(e) => setNombreResponsable(e.target.value)}
+                    placeholder="Ej: Juan Pérez"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
+                  />
+                </div>
+              </div>
+
+              {/* SERIE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Serie
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={serie}
+                    onChange={(e) => setSerie(e.target.value)}
+                    placeholder="Ej: SER-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* LOTE */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Lote
+                </label>
+
+                <div className="relative">
+                  <FaBarcode className="absolute left-4 top-5 text-cyan-600" />
+
+                  <input
+                    type="text"
+                    value={lote}
+                    onChange={(e) => setLote(e.target.value)}
+                    placeholder="Ej: LOT-2026-001"
+                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  />
+                </div>
               </div>
 
               {/* CATEGORÍA - se oculta dinámicamente */}
@@ -336,7 +395,7 @@ export default function AgregarAlmacenados() {
 
             <div className="flex justify-end gap-4 mt-10">
               <button
-                onClick={() => navigate("maquinas/almacenados")}
+                onClick={() => navigate("/maquinas/almacenados")}
                 className="px-6 py-3 rounded-xl border border-slate-300 text-slate-700 hover:bg-slate-100 transition"
               >
                 Cancelar
