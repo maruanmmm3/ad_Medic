@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import Swal from "sweetalert2";
 import { supabase } from "../lib/supabase";
 
 export default function Login() {
@@ -11,6 +12,11 @@ export default function Login() {
   const [nombre, setNombre] = useState("");
   const [loading, setLoading] = useState(false);
   const [esRegistro, setEsRegistro] = useState(false);
+
+  // --- Olvidé mi contraseña ---
+  const [esOlvidoPassword, setEsOlvidoPassword] = useState(false);
+  const [emailRecuperacion, setEmailRecuperacion] = useState("");
+  const [loadingRecuperacion, setLoadingRecuperacion] = useState(false);
 
   const iniciarSesion = async (e) => {
     e.preventDefault();
@@ -49,6 +55,54 @@ export default function Login() {
 
     // Supabase ya guarda la sesión sola (localStorage/cookies internos).
     navigate("/home");
+  };
+
+  const recuperarPassword = async (e) => {
+    e.preventDefault();
+
+    if (!emailRecuperacion) {
+      Swal.fire({
+        icon: "warning",
+        title: "Campo requerido",
+        text: "Ingresa tu correo electrónico",
+      });
+      return;
+    }
+
+    setLoadingRecuperacion(true);
+
+    const { error } = await supabase.auth.resetPasswordForEmail(
+      emailRecuperacion,
+      {
+        // Ruta a la que Supabase redirige al usuario tras hacer clic
+        // en el enlace del correo. Debe existir en tu app y estar
+        // registrada en Supabase (Authentication > URL Configuration).
+        redirectTo: `${window.location.origin}/reset-password`,
+      },
+    );
+
+    setLoadingRecuperacion(false);
+
+    if (error) {
+      Swal.fire({
+        icon: "error",
+        title: "No se pudo enviar el correo",
+        text: error.message,
+      });
+      return;
+    }
+
+    // Por seguridad, Supabase no indica si el correo existe o no,
+    // así que siempre mostramos el mismo mensaje de éxito.
+    Swal.fire({
+      icon: "success",
+      title: "Revisa tu correo",
+      text: "Si el correo está registrado, te enviamos un enlace para restablecer tu contraseña.",
+      confirmButtonColor: "#3085d6",
+    });
+
+    setEmailRecuperacion("");
+    setEsOlvidoPassword(false);
   };
 
   const registrar = async (e) => {
@@ -123,22 +177,85 @@ export default function Login() {
           </p>
         </div>
 
-        <form
-          onSubmit={esRegistro ? registrar : iniciarSesion}
-          className="space-y-5"
-        >
-          {esRegistro && (
+        {esOlvidoPassword ? (
+          <form onSubmit={recuperarPassword} className="space-y-5">
+            <p className="text-sm text-gray-500 text-center">
+              Ingresa tu correo electrónico y te enviaremos un enlace para
+              restablecer tu contraseña.
+            </p>
+
             <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">
-                Nombre
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Correo electrónico
               </label>
 
               <input
-                type="text"
-                placeholder="Ingresa tu nombre"
-                value={nombre}
-                onChange={(e) => setNombre(e.target.value)}
+                type="email"
+                placeholder="ejemplo@correo.com"
+                value={emailRecuperacion}
+                onChange={(e) => setEmailRecuperacion(e.target.value)}
                 className="
+              w-full
+              px-4
+              py-3
+              border
+              border-gray-300
+              rounded-xl
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-500
+              focus:border-blue-500
+              transition
+            "
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={loadingRecuperacion}
+              className="
+      w-full
+      bg-blue-600
+      hover:bg-blue-700
+      text-white
+      py-3
+      rounded-xl
+      font-semibold
+      shadow-lg
+      transition
+    "
+            >
+              {loadingRecuperacion ? "Enviando..." : "Enviar enlace"}
+            </button>
+
+            <button
+              type="button"
+              onClick={() => {
+                setEsOlvidoPassword(false);
+                setEmailRecuperacion("");
+              }}
+              className="w-full text-center text-blue-600 hover:underline text-sm"
+            >
+              Volver a iniciar sesión
+            </button>
+          </form>
+        ) : (
+          <form
+            onSubmit={esRegistro ? registrar : iniciarSesion}
+            className="space-y-5"
+          >
+            {esRegistro && (
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
+                  Nombre
+                </label>
+
+                <input
+                  type="text"
+                  placeholder="Ingresa tu nombre"
+                  value={nombre}
+                  onChange={(e) => setNombre(e.target.value)}
+                  className="
           w-full
           px-4
           py-3
@@ -150,49 +267,21 @@ export default function Login() {
           focus:ring-blue-500
           transition
         "
-              />
-            </div>
-          )}
+                />
+              </div>
+            )}
 
-          {/* Usuario (siempre visible: se usa para registro y para login) */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Usuario
-            </label>
-
-            <input
-              type="text"
-              placeholder="Ingresa tu usuario"
-              value={usuario}
-              onChange={(e) => setUsuario(e.target.value)}
-              className="
-              w-full
-              px-4
-              py-3
-              border
-              border-gray-300
-              rounded-xl
-              focus:outline-none
-              focus:ring-2
-              focus:ring-blue-500
-              focus:border-blue-500
-              transition
-            "
-            />
-          </div>
-
-          {/* Correo (solo al registrarse) */}
-          {esRegistro && (
+            {/* Usuario (siempre visible: se usa para registro y para login) */}
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-2">
-                Correo electrónico
+                Usuario
               </label>
 
               <input
-                type="email"
-                placeholder="ejemplo@correo.com"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
+                type="text"
+                placeholder="Ingresa tu usuario"
+                value={usuario}
+                onChange={(e) => setUsuario(e.target.value)}
                 className="
               w-full
               px-4
@@ -208,20 +297,20 @@ export default function Login() {
             "
               />
             </div>
-          )}
 
-          {/* Contraseña */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Contraseña
-            </label>
+            {/* Correo (solo al registrarse) */}
+            {esRegistro && (
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Correo electrónico
+                </label>
 
-            <input
-              type="password"
-              placeholder="********"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="
+                <input
+                  type="email"
+                  placeholder="ejemplo@correo.com"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="
               w-full
               px-4
               py-3
@@ -234,14 +323,55 @@ export default function Login() {
               focus:border-blue-500
               transition
             "
-            />
-          </div>
+                />
+              </div>
+            )}
 
-          {/* Botón ingresar */}
-          <button
-            type="submit"
-            disabled={loading}
-            className="
+            {/* Contraseña */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Contraseña
+              </label>
+
+              <input
+                type="password"
+                placeholder="********"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="
+              w-full
+              px-4
+              py-3
+              border
+              border-gray-300
+              rounded-xl
+              focus:outline-none
+              focus:ring-2
+              focus:ring-blue-500
+              focus:border-blue-500
+              transition
+            "
+              />
+            </div>
+
+            {/* Olvidé mi contraseña (solo visible en modo login) */}
+            {!esRegistro && (
+              <div className="text-right -mt-2">
+                <button
+                  type="button"
+                  onClick={() => setEsOlvidoPassword(true)}
+                  className="text-sm text-blue-600 hover:underline"
+                >
+                  ¿Olvidaste tu contraseña?
+                </button>
+              </div>
+            )}
+
+            {/* Botón ingresar */}
+            <button
+              type="submit"
+              disabled={loading}
+              className="
       w-full
       bg-blue-600
       hover:bg-blue-700
@@ -252,37 +382,40 @@ export default function Login() {
       shadow-lg
       transition
     "
-          >
-            {loading
-              ? esRegistro
-                ? "Creando cuenta..."
-                : "Ingresando..."
-              : esRegistro
-                ? "Crear cuenta"
-                : "Ingresar"}
-          </button>
-        </form>
+            >
+              {loading
+                ? esRegistro
+                  ? "Creando cuenta..."
+                  : "Ingresando..."
+                : esRegistro
+                  ? "Crear cuenta"
+                  : "Ingresar"}
+            </button>
+          </form>
+        )}
 
         {/* Pie */}
-        <div className="text-center mt-5">
-          {esRegistro ? (
-            <button
-              type="button"
-              onClick={() => setEsRegistro(false)}
-              className="text-blue-600 hover:underline"
-            >
-              ¿Ya tienes una cuenta? Inicia sesión
-            </button>
-          ) : (
-            <button
-              type="button"
-              onClick={() => setEsRegistro(true)}
-              className="text-blue-600 hover:underline"
-            >
-              ¿No tienes cuenta? Regístrate
-            </button>
-          )}
-        </div>
+        {!esOlvidoPassword && (
+          <div className="text-center mt-5">
+            {esRegistro ? (
+              <button
+                type="button"
+                onClick={() => setEsRegistro(false)}
+                className="text-blue-600 hover:underline"
+              >
+                ¿Ya tienes una cuenta? Inicia sesión
+              </button>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setEsRegistro(true)}
+                className="text-blue-600 hover:underline"
+              >
+                ¿No tienes cuenta? Regístrate
+              </button>
+            )}
+          </div>
+        )}
 
         <div className="mt-8 text-center">
           <p className="text-xs text-gray-400">

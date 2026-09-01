@@ -26,6 +26,7 @@ import EditarPowerCord from "../pages/formularios/EditarPowerCord";
 import Configuracion from "../pages/Configuracion";
 import Reportes from "../pages/Reportes";
 import ImportacionRegistro from "../pages/ImportacionRegistro";
+import ResetPassword from "../pages/ResetPassword";
 
 function AppRoutes() {
   return (
@@ -216,6 +217,7 @@ function AppRoutes() {
           </ProtectedRoute>
         }
       />
+      <Route path="/reset-password" element={<ResetPassword />} />
       <Route
         path="/configuracion"
         element={
