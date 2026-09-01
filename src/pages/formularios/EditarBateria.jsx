@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { FaArrowLeft, FaTrash } from "react-icons/fa";
 import EstadoCard from "../../components/EstadoCard";
+import ImagenCategoria from "../../components/ImagenCategoria";
 import Swal from "sweetalert2";
 
 export default function EditarBateria() {
@@ -81,7 +82,7 @@ export default function EditarBateria() {
     const obtenerCategorias = async () => {
       const { data, error } = await supabase
         .from("categorias")
-        .select("id, nombre")
+        .select("id, nombre, url_imagen")
         .eq("tipo", "Bateria")
         .order("nombre", { ascending: true });
 
@@ -314,6 +315,17 @@ export default function EditarBateria() {
               </option>
             ))}
           </select>
+
+          <ImagenCategoria
+            urlImagen={
+              categorias.find((c) => String(c.id) === String(categoria))
+                ?.url_imagen
+            }
+            nombre={
+              categorias.find((c) => String(c.id) === String(categoria))
+                ?.nombre
+            }
+          />
         </div>
 
         {/* ESTADOS */}

@@ -3,6 +3,7 @@ import { supabase } from "../../lib/supabase";
 import { useNavigate } from "react-router-dom";
 import { FaPlug, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 import Swal from "sweetalert2";
+import ImagenCategoria from "../../components/ImagenCategoria";
 
 export default function AgregarPowerCord() {
   const navigate = useNavigate();
@@ -16,7 +17,7 @@ export default function AgregarPowerCord() {
   const obtenerCategorias = async () => {
     const { data, error } = await supabase
       .from("categorias")
-      .select("id, nombre")
+      .select("id, nombre, url_imagen")
       .eq("tipo", "PowerCord")
       .order("nombre", { ascending: true });
 
@@ -196,6 +197,17 @@ export default function AgregarPowerCord() {
                     ))}
                   </select>
                 </div>
+
+                <ImagenCategoria
+                  urlImagen={
+                    categorias.find((c) => String(c.id) === String(categoria))
+                      ?.url_imagen
+                  }
+                  nombre={
+                    categorias.find((c) => String(c.id) === String(categoria))
+                      ?.nombre
+                  }
+                />
               </div>
             </div>
 

@@ -38,6 +38,25 @@ function formatearFecha(valor, conHora = false) {
       });
 }
 
+// Determina si una fecha cae dentro de la semana actual (lunes a domingo).
+function esSemanaActual(valor) {
+  if (!valor) return false;
+  const fecha = new Date(valor);
+  if (isNaN(fecha.getTime())) return false;
+
+  const ahora = new Date();
+  const diaSemana = (ahora.getDay() + 6) % 7; // 0 = lunes ... 6 = domingo
+
+  const inicioSemana = new Date(ahora);
+  inicioSemana.setHours(0, 0, 0, 0);
+  inicioSemana.setDate(ahora.getDate() - diaSemana);
+
+  const finSemana = new Date(inicioSemana);
+  finSemana.setDate(inicioSemana.getDate() + 7);
+
+  return fecha >= inicioSemana && fecha < finSemana;
+}
+
 // ─────────────────────────────────────────────────────────────
 // Config: celdas fijas donde vive cada dato en la PRIMERA hoja
 // del archivo (según el formato "ENTREGA DE EQUIPOS A ALMACÉN").
@@ -317,6 +336,22 @@ export default function ImportacionRegistro() {
 
     if (!error) setRegistros(data ?? []);
     setCargandoRegistros(false);
+  }
+
+  async function handleEliminar(id) {
+    const confirmar = window.confirm(
+      "¿Eliminar este registro de importación? Esta acción no se puede deshacer.",
+    );
+    if (!confirmar) return;
+
+    const { error } = await supabase
+      .from("registroimportacion")
+      .delete()
+      .eq("id", id);
+
+    if (!error) {
+      setRegistros((prev) => prev.filter((r) => r.id !== id));
+    }
   }
 
   function limpiarArchivo() {
@@ -816,52 +851,102 @@ export default function ImportacionRegistro() {
           </div>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-            {registros.map((registro) => (
-              <div
-                key={registro.id}
-                className="bg-white rounded-2xl shadow-sm border border-slate-100 p-5 flex flex-col gap-4 hover:shadow-md transition-shadow"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="w-11 h-11 rounded-xl bg-teal-50 flex items-center justify-center shrink-0">
-                    <FaFileExcel className="w-5 h-5 text-teal-600" />
-                  </div>
-                  <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-50 text-slate-600 text-xs font-medium border border-slate-200 whitespace-nowrap">
-                    <FaHashtag className="w-3 h-3" />
-                    {registro.numero_pedido}
-                  </span>
-                </div>
+            {registros.map((registro) => {
+              const esActual = esSemanaActual(registro.fecha_importacion);
 
-                <p
-                  className="text-sm font-semibold text-slate-800 break-words leading-snug"
-                  title={registro.nombre_archivo}
+              return (
+                <div
+                  key={registro.id}
+                  onClick={() =>
+                    navigate("/reportes", {
+                      state: { pedido: registro.numero_pedido },
+                    })
+                  }
+                  role="button"
+                  tabIndex={0}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ") {
+                      e.preventDefault();
+                      navigate("/reportes", {
+                        state: { pedido: registro.numero_pedido },
+                      });
+                    }
+                  }}
+                  className={`rounded-2xl shadow-sm border p-5 flex flex-col gap-4 transition-shadow hover:shadow-md cursor-pointer ${
+                    esActual
+                      ? "bg-blue-50 border-blue-200 ring-1 ring-blue-100"
+                      : "bg-white border-slate-100"
+                  }`}
                 >
-                  {registro.nombre_archivo}
-                </p>
-
-                <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
-                  <div className="flex flex-col items-center text-center gap-1 p-3 rounded-xl bg-slate-50">
-                    <FaBoxOpen className="w-4 h-4 text-teal-600" />
-                    <span className="text-lg font-bold text-slate-800">
-                      {registro.cantidad_datos}
-                    </span>
-                    <span className="text-[11px] text-slate-400">datos</span>
+                  <div className="flex items-start justify-between gap-3">
+                    <div
+                      className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 ${
+                        esActual ? "bg-blue-100" : "bg-teal-50"
+                      }`}
+                    >
+                      <FaFileExcel
+                        className={`w-5 h-5 ${esActual ? "text-blue-600" : "text-teal-600"}`}
+                      />
+                    </div>
+                    <div className="flex items-center gap-2">
+                      {esActual && (
+                        <span className="px-2 py-1 rounded-md bg-blue-600 text-white text-[11px] font-medium whitespace-nowrap">
+                          Esta semana
+                        </span>
+                      )}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-1 rounded-md bg-slate-50 text-slate-600 text-xs font-medium border border-slate-200 whitespace-nowrap">
+                        <FaHashtag className="w-3 h-3" />
+                        Pedido: {registro.numero_pedido}
+                      </span>
+                    </div>
                   </div>
 
-                  <div className="flex flex-col items-center text-center gap-1 p-3 rounded-xl bg-slate-50">
-                    <FaCalendarAlt className="w-4 h-4 text-teal-600" />
-                    <span className="text-xs font-semibold text-slate-700">
-                      {formatearFecha(registro.fecha_inicio)}
-                    </span>
-                    <span className="text-[11px] text-slate-400">inicio</span>
+                  <p
+                    className="text-sm font-semibold text-slate-800 break-words leading-snug"
+                    title={registro.nombre_archivo}
+                  >
+                    {registro.nombre_archivo}
+                  </p>
+
+                  <div className="grid grid-cols-2 gap-3 pt-2 border-t border-slate-100">
+                    <div className="flex flex-col items-center text-center gap-1 p-3 rounded-xl bg-slate-50">
+                      <FaBoxOpen className="w-4 h-4 text-teal-600" />
+                      <span className="text-lg font-bold text-slate-800">
+                        {registro.cantidad_datos}
+                      </span>
+                      <span className="text-[11px] text-slate-400">datos</span>
+                    </div>
+
+                    <div className="flex flex-col items-center text-center gap-1 p-3 rounded-xl bg-slate-50">
+                      <FaCalendarAlt className="w-4 h-4 text-teal-600" />
+                      <span className="text-xs font-semibold text-slate-700">
+                        {formatearFecha(registro.fecha_inicio)}
+                      </span>
+                      <span className="text-[11px] text-slate-400">inicio</span>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-2 pt-1">
+                    <div className="flex items-center gap-1.5 text-[11px] text-slate-400">
+                      <FaClock className="w-3 h-3" />
+                      Importado{" "}
+                      {formatearFecha(registro.fecha_importacion, true)}
+                    </div>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleEliminar(registro.id);
+                      }}
+                      className="text-slate-300 hover:text-red-500 transition-colors"
+                      title="Eliminar registro"
+                      aria-label="Eliminar registro"
+                    >
+                      <FaTrash className="w-3.5 h-3.5" />
+                    </button>
                   </div>
                 </div>
-
-                <div className="flex items-center gap-1.5 text-[11px] text-slate-400 pt-1">
-                  <FaClock className="w-3 h-3" />
-                  Importado {formatearFecha(registro.fecha_importacion, true)}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

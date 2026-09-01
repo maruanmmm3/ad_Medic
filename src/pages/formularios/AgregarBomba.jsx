@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
 import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
+import ImagenCategoria from "../../components/ImagenCategoria";
 
 // Categorías exclusivas de "Space Plus"
 const CATEGORIAS_SPACE_PLUS = [
@@ -153,7 +154,7 @@ export default function AgregarBomba() {
   const obtenerCategorias = async () => {
     const { data, error } = await supabase
       .from("categorias")
-      .select("id, nombre")
+      .select("id, nombre, url_imagen")
       .eq("tipo", "Bomba")
       .order("nombre", { ascending: true });
 
@@ -316,6 +317,19 @@ export default function AgregarBomba() {
                     ))}
                   </select>
                 </div>
+
+                <ImagenCategoria
+                  urlImagen={
+                    categoriasFiltradas.find(
+                      (c) => String(c.id) === String(categoria),
+                    )?.url_imagen
+                  }
+                  nombre={
+                    categoriasFiltradas.find(
+                      (c) => String(c.id) === String(categoria),
+                    )?.nombre
+                  }
+                />
               </div>
             </div>
 

@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import { FaArrowLeft, FaTrash } from "react-icons/fa";
 import EstadoCard from "../../components/EstadoCard";
+import ImagenCategoria from "../../components/ImagenCategoria";
 import Swal from "sweetalert2";
 
 export default function EditarPole() {
@@ -89,7 +90,7 @@ export default function EditarPole() {
     const obtenerCategorias = async () => {
       const { data, error } = await supabase
         .from("categorias")
-        .select("id, nombre")
+        .select("id, nombre, url_imagen")
         .eq("tipo", "Pole")
         .order("nombre", { ascending: true });
 
@@ -428,6 +429,17 @@ export default function EditarPole() {
               </option>
             ))}
           </select>
+
+          <ImagenCategoria
+            urlImagen={
+              categorias.find((c) => String(c.id) === String(categoria))
+                ?.url_imagen
+            }
+            nombre={
+              categorias.find((c) => String(c.id) === String(categoria))
+                ?.nombre
+            }
+          />
         </div>
 
         <h2 className="text-xl font-semibold text-slate-700 mt-10 mb-5">

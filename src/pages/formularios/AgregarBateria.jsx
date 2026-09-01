@@ -9,6 +9,7 @@ import {
   FaBarcode,
   FaUser,
 } from "react-icons/fa";
+import ImagenCategoria from "../../components/ImagenCategoria";
 
 export default function AgregarBateria() {
   const navigate = useNavigate();
@@ -115,7 +116,7 @@ export default function AgregarBateria() {
   const obtenerCategorias = async () => {
     const { data, error } = await supabase
       .from("categorias")
-      .select("id, nombre")
+      .select("id, nombre, url_imagen")
       .eq("tipo", "Bateria")
       .order("nombre", { ascending: true });
 
@@ -226,6 +227,17 @@ export default function AgregarBateria() {
                     </option>
                   ))}
                 </select>
+
+                <ImagenCategoria
+                  urlImagen={
+                    categorias.find((c) => String(c.id) === String(categoria))
+                      ?.url_imagen
+                  }
+                  nombre={
+                    categorias.find((c) => String(c.id) === String(categoria))
+                      ?.nombre
+                  }
+                />
               </div>
 
               {/* SERIE */}

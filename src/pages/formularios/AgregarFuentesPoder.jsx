@@ -9,6 +9,7 @@ import {
   FaBarcode,
   FaUser,
 } from "react-icons/fa";
+import ImagenCategoria from "../../components/ImagenCategoria";
 
 export default function AgregarFuentePoder() {
   const navigate = useNavigate();
@@ -51,7 +52,7 @@ export default function AgregarFuentePoder() {
   const obtenerCategorias = async () => {
     const { data, error } = await supabase
       .from("categorias")
-      .select("id, nombre")
+      .select("id, nombre, url_imagen")
       .eq("tipo", "FuentePoder")
       .order("nombre", { ascending: true });
 
@@ -291,6 +292,17 @@ export default function AgregarFuentePoder() {
                     </option>
                   ))}
                 </select>
+
+                <ImagenCategoria
+                  urlImagen={
+                    categorias.find((c) => String(c.id) === String(categoria))
+                      ?.url_imagen
+                  }
+                  nombre={
+                    categorias.find((c) => String(c.id) === String(categoria))
+                      ?.nombre
+                  }
+                />
               </div>
 
               {/* CATEGORIA CABLE - solo aparece si ya se eligió categoría */}

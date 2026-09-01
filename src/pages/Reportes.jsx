@@ -6,8 +6,10 @@ import {
   FiCalendar,
   FiUsers,
   FiArrowLeft,
+  FiX,
+  FiClipboard,
 } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import * as XLSX from "xlsx";
 import {
   BarChart,
@@ -31,8 +33,7 @@ import { supabase } from "../lib/supabase";
 //
 // IMPORTANTE: las keys de este objeto deben coincidir EXACTAMENTE con
 // el nombre real de la tabla en Supabase (según tu schema: bombas, poles,
-// fuentespoder, baterias). "maquinas" no existe como tabla, por eso se
-// cambió a "bombas".
+// fuentespoder, baterias, powercord).
 const CONFIGS = {
   bombas: {
     label: "Máquina",
@@ -74,6 +75,14 @@ const CONFIGS = {
       { key: "prueba", label: "Prueba" },
     ],
   },
+  powercord: {
+    label: "Power Cord",
+    fields: [
+      { key: "limpieza", label: "Limpieza" },
+      { key: "prueba", label: "Prueba" },
+      { key: "empaque", label: "Empaque" },
+    ],
+  },
 };
 
 const COLORES_PIE = [
@@ -85,6 +94,9 @@ const COLORES_PIE = [
   "#2563eb", // blue-600
   "#65a30d", // lime-600
 ];
+
+// Valor usado como placeholder para "sin dato" en campos de texto.
+const SIN_DATO = "—";
 
 // ---------- Helpers de fecha (semana Lunes a Viernes) ----------
 
@@ -130,32 +142,66 @@ function finDelDia(fechaStr) {
 const LUNES_ACTUAL = obtenerLunesDeLaSemana();
 const VIERNES_ACTUAL = obtenerViernesDeLaSemana();
 
+// Tipos de equipo disponibles para el filtro (se derivan de CONFIGS,
+// así que si agregas una tabla nueva ahí, aparece aquí automáticamente).
+const TIPOS_EQUIPO = ["Todos", ...Object.values(CONFIGS).map((c) => c.label)];
+
+// Filtros vacíos, usados tanto para el estado inicial de los inputs
+// como para "Limpiar filtros".
+function filtrosVacios() {
+  return {
+    fechaInicio: formatearInputDate(LUNES_ACTUAL),
+    fechaFin: formatearInputDate(VIERNES_ACTUAL),
+    tipo: "Todos",
+    usuario: "Todos",
+    categoria: "Todos",
+    pedido: "Todos",
+    estado: "Todos",
+    busqueda: "",
+  };
+}
+
 export default function Reportes() {
   const navigate = useNavigate();
+  const location = useLocation();
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Filtros — precargados con la semana actual (Lunes a Viernes)
-  const [fechaInicio, setFechaInicio] = useState(() =>
-    formatearInputDate(LUNES_ACTUAL),
+  // Si llegamos desde la tarjeta de una importación, viene el pedido
+  // seleccionado en el state de navegación. En ese caso arrancamos con
+  // ese pedido ya filtrado y sin restricción de fecha (para ver todo
+  // lo relacionado a ese pedido, sin importar cuándo se hizo).
+  const pedidoDesdeNavegacion = location.state?.pedido ?? null;
+
+  // Filtros — precargados con la semana actual (Lunes a Viernes),
+  // salvo que llegue un pedido específico desde otra página.
+  const inicial = filtrosVacios();
+  const filtrosIniciales = pedidoDesdeNavegacion
+    ? {
+        ...inicial,
+        fechaInicio: "",
+        fechaFin: "",
+        pedido: pedidoDesdeNavegacion,
+      }
+    : inicial;
+  const [fechaInicio, setFechaInicio] = useState(filtrosIniciales.fechaInicio);
+  const [fechaFin, setFechaFin] = useState(filtrosIniciales.fechaFin);
+  const [tipoFiltro, setTipoFiltro] = useState(filtrosIniciales.tipo);
+  const [usuarioFiltro, setUsuarioFiltro] = useState(filtrosIniciales.usuario);
+  const [categoriaFiltro, setCategoriaFiltro] = useState(
+    filtrosIniciales.categoria,
   );
-  const [fechaFin, setFechaFin] = useState(() =>
-    formatearInputDate(VIERNES_ACTUAL),
-  );
-  const [usuarioFiltro, setUsuarioFiltro] = useState("Todos");
-  const [estadoFiltro, setEstadoFiltro] = useState("Todos");
+  const [pedidoFiltro, setPedidoFiltro] = useState(filtrosIniciales.pedido);
+  const [estadoFiltro, setEstadoFiltro] = useState(filtrosIniciales.estado);
+  const [busqueda, setBusqueda] = useState(filtrosIniciales.busqueda);
 
   // Filtros "aplicados" — solo se actualizan al presionar Buscar,
   // para no refiltrar en cada tecla/click de los selects.
-  // Arrancan con la semana actual ya aplicada, para que la tabla y los
-  // gráficos muestren la semana en curso desde que carga la página.
-  const [filtrosAplicados, setFiltrosAplicados] = useState({
-    fechaInicio: formatearInputDate(LUNES_ACTUAL),
-    fechaFin: formatearInputDate(VIERNES_ACTUAL),
-    usuario: "Todos",
-    estado: "Todos",
-  });
+  // Arrancan con la semana actual ya aplicada (o el pedido recibido por
+  // navegación), para que la tabla y los gráficos muestren lo correcto
+  // desde que carga la página.
+  const [filtrosAplicados, setFiltrosAplicados] = useState(filtrosIniciales);
 
   useEffect(() => {
     cargarDatos();
@@ -171,8 +217,13 @@ export default function Reportes() {
       const resultados = await Promise.all(
         tablas.map((tabla) =>
           supabase
+            // Trae también el nombre de usuario (usuario_id -> usuarios)
+            // y el nombre de la categoría (categoria_id -> categorias).
+            // Si en tu proyecto Supabase el alias de esta relación sale
+            // distinto (por ej. "categorias!categoria_id"), ajusta este
+            // select con el nombre que te indique el error de Supabase.
             .from(tabla)
-            .select("*, usuarios(nombre)")
+            .select("*, usuarios(nombre), categorias(nombre)")
             .order("fecha", { ascending: false }),
         ),
       );
@@ -201,9 +252,16 @@ export default function Reportes() {
 
           unificado.push({
             id: `${tabla}-${registro.id}`,
+            tabla,
             tipo: config.label,
-            nombre: registro.nombre,
-            serie_lote: registro.serie_lote ?? "—",
+            nombre: registro.nombre ?? SIN_DATO,
+            serie: registro.serie ?? SIN_DATO,
+            lote: registro.lote ?? SIN_DATO,
+            pedido: registro.pedido ?? SIN_DATO,
+            ubicacion: registro.ubicacion ?? SIN_DATO,
+            responsable: registro.nombre_responsable ?? SIN_DATO,
+            categoria_id: registro.categoria_id ?? null,
+            categoria: registro.categorias?.nombre ?? SIN_DATO,
             usuario_id: registro.usuario_id,
             usuario: registro.usuarios?.nombre ?? "Sin asignar",
             fecha: registro.fecha,
@@ -225,13 +283,30 @@ export default function Reportes() {
     }
   }
 
-  // Lista de usuarios únicos para el <select>
+  // ---------- Listas de opciones para los <select>, derivadas de los datos ----------
+
   const usuariosDisponibles = useMemo(() => {
     const nombres = new Set(rows.map((r) => r.usuario).filter(Boolean));
     return ["Todos", ...Array.from(nombres).sort()];
   }, [rows]);
 
+  const categoriasDisponibles = useMemo(() => {
+    const nombres = new Set(
+      rows.map((r) => r.categoria).filter((c) => c && c !== SIN_DATO),
+    );
+    return ["Todos", ...Array.from(nombres).sort()];
+  }, [rows]);
+
+  const pedidosDisponibles = useMemo(() => {
+    const pedidos = new Set(
+      rows.map((r) => r.pedido).filter((p) => p && p !== SIN_DATO),
+    );
+    return ["Todos", ...Array.from(pedidos).sort()];
+  }, [rows]);
+
   const filasFiltradas = useMemo(() => {
+    const texto = filtrosAplicados.busqueda.trim().toLowerCase();
+
     return rows.filter((r) => {
       const fecha = new Date(r.fecha);
 
@@ -244,8 +319,29 @@ export default function Reportes() {
       }
 
       if (
+        filtrosAplicados.tipo !== "Todos" &&
+        r.tipo !== filtrosAplicados.tipo
+      ) {
+        return false;
+      }
+
+      if (
         filtrosAplicados.usuario !== "Todos" &&
         r.usuario !== filtrosAplicados.usuario
+      ) {
+        return false;
+      }
+
+      if (
+        filtrosAplicados.categoria !== "Todos" &&
+        r.categoria !== filtrosAplicados.categoria
+      ) {
+        return false;
+      }
+
+      if (
+        filtrosAplicados.pedido !== "Todos" &&
+        r.pedido !== filtrosAplicados.pedido
       ) {
         return false;
       }
@@ -253,6 +349,22 @@ export default function Reportes() {
       if (filtrosAplicados.estado !== "Todos") {
         const esCompletado = filtrosAplicados.estado === "Completado";
         if (r.completado !== esCompletado) return false;
+      }
+
+      // Búsqueda general: nombre, serie, lote, pedido, ubicación y responsable.
+      if (texto) {
+        const coincide = [
+          r.nombre,
+          r.serie,
+          r.lote,
+          r.pedido,
+          r.ubicacion,
+          r.responsable,
+        ]
+          .filter(Boolean)
+          .some((campo) => String(campo).toLowerCase().includes(texto));
+
+        if (!coincide) return false;
       }
 
       return true;
@@ -266,8 +378,11 @@ export default function Reportes() {
     const usuariosUnicos = new Set(
       filasFiltradas.map((r) => r.usuario_id).filter(Boolean),
     ).size;
+    const pedidosUnicos = new Set(
+      filasFiltradas.map((r) => r.pedido).filter((p) => p && p !== SIN_DATO),
+    ).size;
 
-    return { total, completados, pendientes, usuariosUnicos };
+    return { total, completados, pendientes, usuariosUnicos, pedidosUnicos };
   }, [filasFiltradas]);
 
   // ---------- Datos para los gráficos (siguen el rango de fechas filtrado) ----------
@@ -308,9 +423,26 @@ export default function Reportes() {
     setFiltrosAplicados({
       fechaInicio,
       fechaFin,
+      tipo: tipoFiltro,
       usuario: usuarioFiltro,
+      categoria: categoriaFiltro,
+      pedido: pedidoFiltro,
       estado: estadoFiltro,
+      busqueda,
     });
+  }
+
+  function handleLimpiarFiltros() {
+    const vacios = filtrosVacios();
+    setFechaInicio(vacios.fechaInicio);
+    setFechaFin(vacios.fechaFin);
+    setTipoFiltro(vacios.tipo);
+    setUsuarioFiltro(vacios.usuario);
+    setCategoriaFiltro(vacios.categoria);
+    setPedidoFiltro(vacios.pedido);
+    setEstadoFiltro(vacios.estado);
+    setBusqueda(vacios.busqueda);
+    setFiltrosAplicados(vacios);
   }
 
   function handleSemanaActual() {
@@ -336,7 +468,12 @@ export default function Reportes() {
       Fecha: formatearFecha(r.fecha),
       Tipo: r.tipo,
       Nombre: r.nombre,
-      "Serie/Lote": r.serie_lote,
+      Serie: r.serie,
+      Lote: r.lote,
+      Pedido: r.pedido,
+      Categoría: r.categoria,
+      Ubicación: r.ubicacion,
+      Responsable: r.responsable,
       Usuario: r.usuario,
       Estado: r.completado ? "Completado" : "Pendiente",
       Etapa: r.completado ? "—" : r.etapaPendiente,
@@ -349,7 +486,12 @@ export default function Reportes() {
       { wch: 12 }, // Fecha
       { wch: 16 }, // Tipo
       { wch: 22 }, // Nombre
-      { wch: 16 }, // Serie/Lote
+      { wch: 14 }, // Serie
+      { wch: 14 }, // Lote
+      { wch: 14 }, // Pedido
+      { wch: 18 }, // Categoría
+      { wch: 16 }, // Ubicación
+      { wch: 20 }, // Responsable
       { wch: 20 }, // Usuario
       { wch: 14 }, // Estado
       { wch: 18 }, // Etapa
@@ -361,6 +503,16 @@ export default function Reportes() {
     const fechaArchivo = new Date().toISOString().slice(0, 10);
     XLSX.writeFile(libro, `reportes_${fechaArchivo}.xlsx`);
   }
+
+  // ¿Hay algún filtro distinto al default de "semana actual"? Se usa
+  // solo para resaltar visualmente el botón "Limpiar filtros".
+  const hayFiltrosActivos =
+    tipoFiltro !== "Todos" ||
+    usuarioFiltro !== "Todos" ||
+    categoriaFiltro !== "Todos" ||
+    pedidoFiltro !== "Todos" ||
+    estadoFiltro !== "Todos" ||
+    busqueda.trim() !== "";
 
   return (
     <div className="min-h-screen bg-slate-100 p-8">
@@ -403,10 +555,29 @@ export default function Reportes() {
           </button>
         </div>
 
-        <div className="grid grid-cols-5 gap-5">
+        {/* Búsqueda general */}
+        <div className="mb-5">
+          <label className="text-sm text-slate-500">
+            Búsqueda general (nombre, serie, lote, pedido, ubicación o
+            responsable)
+          </label>
+
+          <div className="mt-2 relative">
+            <FiSearch className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
+            <input
+              type="text"
+              value={busqueda}
+              onChange={(e) => setBusqueda(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && handleBuscar()}
+              placeholder="Ej: L-2024-045, almacén B, Juan Pérez…"
+              className="w-full border rounded-xl pl-11 pr-4 py-3"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5">
           <div>
             <label className="text-sm text-slate-500">Fecha Inicio</label>
-
             <input
               type="date"
               value={fechaInicio}
@@ -417,7 +588,6 @@ export default function Reportes() {
 
           <div>
             <label className="text-sm text-slate-500">Fecha Fin</label>
-
             <input
               type="date"
               value={fechaFin}
@@ -427,8 +597,52 @@ export default function Reportes() {
           </div>
 
           <div>
-            <label className="text-sm text-slate-500">Usuario</label>
+            <label className="text-sm text-slate-500">Tipo de Equipo</label>
+            <select
+              value={tipoFiltro}
+              onChange={(e) => setTipoFiltro(e.target.value)}
+              className="mt-2 w-full border rounded-xl px-4 py-3"
+            >
+              {TIPOS_EQUIPO.map((t) => (
+                <option key={t} value={t}>
+                  {t}
+                </option>
+              ))}
+            </select>
+          </div>
 
+          <div>
+            <label className="text-sm text-slate-500">Categoría</label>
+            <select
+              value={categoriaFiltro}
+              onChange={(e) => setCategoriaFiltro(e.target.value)}
+              className="mt-2 w-full border rounded-xl px-4 py-3"
+            >
+              {categoriasDisponibles.map((c) => (
+                <option key={c} value={c}>
+                  {c}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm text-slate-500">Pedido</label>
+            <select
+              value={pedidoFiltro}
+              onChange={(e) => setPedidoFiltro(e.target.value)}
+              className="mt-2 w-full border rounded-xl px-4 py-3"
+            >
+              {pedidosDisponibles.map((p) => (
+                <option key={p} value={p}>
+                  {p}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="text-sm text-slate-500">Usuario</label>
             <select
               value={usuarioFiltro}
               onChange={(e) => setUsuarioFiltro(e.target.value)}
@@ -444,7 +658,6 @@ export default function Reportes() {
 
           <div>
             <label className="text-sm text-slate-500">Estado</label>
-
             <select
               value={estadoFiltro}
               onChange={(e) => setEstadoFiltro(e.target.value)}
@@ -456,20 +669,32 @@ export default function Reportes() {
             </select>
           </div>
 
-          <div className="flex items-end">
+          <div className="flex items-end gap-3">
             <button
               onClick={handleBuscar}
-              className="w-full bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl py-3 flex justify-center gap-2 items-center"
+              className="flex-1 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl py-3 flex justify-center gap-2 items-center"
             >
               <FiSearch />
               Buscar
+            </button>
+
+            <button
+              onClick={handleLimpiarFiltros}
+              title="Limpiar filtros"
+              className={`px-4 py-3 rounded-xl border flex items-center justify-center transition ${
+                hayFiltrosActivos
+                  ? "border-red-300 text-red-600 hover:bg-red-50"
+                  : "border-slate-200 text-slate-400"
+              }`}
+            >
+              <FiX />
             </button>
           </div>
         </div>
       </div>
 
       {/* CARDS */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 mb-8">
         <Card
           titulo="Total Equipos"
           valor={stats.total}
@@ -485,6 +710,11 @@ export default function Reportes() {
           titulo="Usuarios"
           valor={stats.usuariosUnicos}
           icon={<FiUsers />}
+        />
+        <Card
+          titulo="Pedidos"
+          valor={stats.pedidosUnicos}
+          icon={<FiClipboard />}
         />
       </div>
 
@@ -572,51 +802,67 @@ export default function Reportes() {
         {error && <p className="text-red-500 py-4 text-center">{error}</p>}
 
         {!loading && !error && (
-          <table className="w-full">
-            <thead className="bg-slate-100">
-              <tr>
-                <th className="text-left p-4">Fecha</th>
-                <th className="text-left p-4">Tipo</th>
-                <th className="text-left p-4">Nombre</th>
-                <th className="text-left p-4">Usuario</th>
-                <th className="text-left p-4">Estado</th>
-                <th className="text-left p-4">Etapa</th>
-              </tr>
-            </thead>
-
-            <tbody>
-              {filasFiltradas.length === 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[1100px]">
+              <thead className="bg-slate-100">
                 <tr>
-                  <td colSpan={6} className="p-6 text-center text-slate-400">
-                    No hay resultados para los filtros seleccionados.
-                  </td>
+                  <th className="text-left p-4">Fecha</th>
+                  <th className="text-left p-4">Tipo</th>
+                  <th className="text-left p-4">Nombre</th>
+                  <th className="text-left p-4">Serie</th>
+                  <th className="text-left p-4">Lote</th>
+                  <th className="text-left p-4">Pedido</th>
+                  <th className="text-left p-4">Categoría</th>
+                  <th className="text-left p-4">Ubicación</th>
+                  <th className="text-left p-4">Responsable</th>
+                  <th className="text-left p-4">Usuario</th>
+                  <th className="text-left p-4">Estado</th>
+                  <th className="text-left p-4">Etapa</th>
                 </tr>
-              )}
+              </thead>
 
-              {filasFiltradas.map((r) => (
-                <tr key={r.id} className="border-b">
-                  <td className="p-4">{formatearFecha(r.fecha)}</td>
-                  <td className="p-4">{r.tipo}</td>
-                  <td className="p-4">{r.nombre}</td>
-                  <td className="p-4">{r.usuario}</td>
-                  <td className="p-4">
-                    {r.completado ? (
-                      <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full">
-                        Completado
-                      </span>
-                    ) : (
-                      <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
-                        Pendiente
-                      </span>
-                    )}
-                  </td>
-                  <td className="p-4 text-slate-600">
-                    {r.completado ? "—" : r.etapaPendiente}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+              <tbody>
+                {filasFiltradas.length === 0 && (
+                  <tr>
+                    <td colSpan={12} className="p-6 text-center text-slate-400">
+                      No hay resultados para los filtros seleccionados.
+                    </td>
+                  </tr>
+                )}
+
+                {filasFiltradas.map((r) => (
+                  <tr key={r.id} className="border-b">
+                    <td className="p-4 whitespace-nowrap">
+                      {formatearFecha(r.fecha)}
+                    </td>
+                    <td className="p-4 whitespace-nowrap">{r.tipo}</td>
+                    <td className="p-4">{r.nombre}</td>
+                    <td className="p-4 whitespace-nowrap">{r.serie}</td>
+                    <td className="p-4 whitespace-nowrap">{r.lote}</td>
+                    <td className="p-4 whitespace-nowrap">{r.pedido}</td>
+                    <td className="p-4 whitespace-nowrap">{r.categoria}</td>
+                    <td className="p-4 whitespace-nowrap">{r.ubicacion}</td>
+                    <td className="p-4 whitespace-nowrap">{r.responsable}</td>
+                    <td className="p-4 whitespace-nowrap">{r.usuario}</td>
+                    <td className="p-4 whitespace-nowrap">
+                      {r.completado ? (
+                        <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full">
+                          Completado
+                        </span>
+                      ) : (
+                        <span className="bg-yellow-100 text-yellow-700 px-3 py-1 rounded-full">
+                          Pendiente
+                        </span>
+                      )}
+                    </td>
+                    <td className="p-4 text-slate-600 whitespace-nowrap">
+                      {r.completado ? "—" : r.etapaPendiente}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>
