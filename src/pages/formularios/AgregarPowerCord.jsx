@@ -8,7 +8,6 @@ import ImagenCategoria from "../../components/ImagenCategoria";
 export default function AgregarPowerCord() {
   const navigate = useNavigate();
 
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [lote, setLote] = useState("");
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
@@ -34,25 +33,13 @@ export default function AgregarPowerCord() {
   }, []);
 
   const guardar = async () => {
-    if (!nombreResponsable.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "Campos incompletos",
-        text: "Debes completar todos los campos",
-        confirmButtonColor: "#0891b2",
-      });
-
-      return;
-    }
-
     setGuardando(true);
 
     const { error } = await supabase.from("powercord").insert([
       {
-        nombre_responsable: nombreResponsable.trim(),
         lote: lote.trim() || null,
         categoria_id: categoria || null,
-        fecha: new Date().toISOString(),
+        fecha: new Date().toISOString().split("T")[0],
         limpieza: false,
         prueba: false,
         empaque: false,
@@ -138,24 +125,6 @@ export default function AgregarPowerCord() {
 
           <div className="p-8">
             <div className="grid md:grid-cols-2 gap-8">
-              {/* RESPONSABLE */}
-
-              <div>
-                <label className="block text-slate-700 font-semibold mb-2">
-                  Responsable
-                </label>
-
-                <div className="relative">
-                  <input
-                    type="text"
-                    value={nombreResponsable}
-                    onChange={(e) => setNombreResponsable(e.target.value)}
-                    placeholder="Nombre del responsable"
-                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition"
-                  />
-                </div>
-              </div>
-
               {/* LOTE */}
 
               <div>

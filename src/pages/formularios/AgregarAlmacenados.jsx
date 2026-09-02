@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import {
-  FaWarehouse,
-  FaArrowLeft,
-  FaSave,
-  FaBarcode,
-  FaUser,
-} from "react-icons/fa";
+import { FaWarehouse, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 
 const nombresDisponibles = ["Space", "Space Plus"];
 const estadosDisponibles = ["Operativa", "Inoperativa"];
@@ -20,7 +14,6 @@ export default function AgregarAlmacenados() {
   const navigate = useNavigate();
 
   const [nombre, setNombre] = useState("");
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [serie, setSerie] = useState("");
   const [lote, setLote] = useState("");
   const [categorias, setCategorias] = useState([]);
@@ -136,14 +129,13 @@ export default function AgregarAlmacenados() {
     const { error } = await supabase.from("almacenados").insert([
       {
         nombre,
-        nombre_responsable: nombreResponsable.trim() || null,
         serie,
         lote,
         categoria_id: mostrarCategoria ? Number(categoria) : null,
         estado,
         nota: notaHabilitada ? nota.trim() || null : null,
         usuario_id: usuarioId,
-        fecha: new Date().toISOString(),
+        fecha: new Date().toISOString().split("T")[0],
       },
     ]);
 
@@ -257,26 +249,6 @@ export default function AgregarAlmacenados() {
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              {/* NOMBRE RESPONSABLE */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre del Responsable{" "}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
-                </label>
-
-                <div className="relative">
-                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
-
-                  <input
-                    type="text"
-                    value={nombreResponsable}
-                    onChange={(e) => setNombreResponsable(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
-                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
-                  />
                 </div>
               </div>
 

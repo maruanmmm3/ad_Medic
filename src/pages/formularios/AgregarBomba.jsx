@@ -111,7 +111,7 @@ export default function AgregarBomba() {
         lote,
         categoria_id: categoria,
         usuario_id: usuarioId, // Asignar el ID del usuario actual
-        fecha: new Date().toISOString(),
+        fecha: new Date().toISOString().split("T")[0],
         recoleccion: false,
         limpieza: false,
         prueba_can: false,

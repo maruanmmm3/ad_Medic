@@ -37,7 +37,7 @@ export default function FuentePoder() {
 
     let query = supabase
       .from("fuentespoder")
-      .select("*, categorias(nombre)", { count: "exact" })
+      .select("*, categorias(nombre, referencia(nombre))", { count: "exact" })
       .order("creado_en", { ascending: false });
 
     if (filtroResponsable.trim()) {
@@ -117,11 +117,18 @@ export default function FuentePoder() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "--";
-    return new Date(fecha).toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-    });
+    const d = new Date(fecha);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // El nombre de la fuente de poder viene de referencia (1 por categoría).
+  // Si la categoría aún no tiene una referencia asignada, se usa el campo "nombre" como respaldo.
+  const obtenerNombreMaquina = (f) => {
+    const referenciaNombre = f.categorias?.referencia?.[0]?.nombre;
+    return referenciaNombre || f.nombre || "--";
   };
 
   const Estado = ({ valor }) => {
@@ -276,7 +283,7 @@ export default function FuentePoder() {
                         index % 2 === 0 ? "bg-white" : "bg-slate-50"
                       }`}
                     >
-                      <td className="px-6 py-5 font-bold">{f.nombre}</td>
+                      <td className="px-6 py-5 font-bold">{obtenerNombreMaquina(f)}</td>
                       <td className="px-6 py-5">
                         {f.nombre_responsable || "--"}
                       </td>
@@ -335,7 +342,7 @@ export default function FuentePoder() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-bold text-slate-800 text-base">
-                      {f.nombre}
+                      {obtenerNombreMaquina(f)}
                     </h3>
                     <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
                       {formatearFecha(f.fecha)}

@@ -12,7 +12,6 @@ export default function EditarPole() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [serie, setSerie] = useState("");
   const [lote, setLote] = useState("");
 
@@ -68,7 +67,6 @@ export default function EditarPole() {
 
       // Uso de ?? "" para evitar inputs "no controlados" cuando el valor es null
       setNombre(data.nombre ?? "");
-      setNombreResponsable(data.nombre_responsable ?? "");
       setSerie(data.serie ?? "");
       setLote(data.lote ?? "");
       setCategoria(data.categoria_id ?? "");
@@ -142,7 +140,6 @@ export default function EditarPole() {
         .from("poles")
         .update({
           nombre: nombre.trim() || null,
-          nombre_responsable: nombreResponsable.trim() || null,
           serie,
           lote,
           categoria_id: Number(categoria),
@@ -341,24 +338,6 @@ export default function EditarPole() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre (opcional)"
-            className="
-        w-full
-        border-2
-        border-slate-200
-        rounded-2xl
-        px-5
-        py-4
-        text-lg
-        outline-none
-        focus:border-cyan-500
-        transition-all
-        "
-          />
-
-          <input
-            value={nombreResponsable}
-            onChange={(e) => setNombreResponsable(e.target.value)}
-            placeholder="Responsable (opcional)"
             className="
         w-full
         border-2

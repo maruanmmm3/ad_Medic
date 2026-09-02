@@ -7,7 +7,6 @@ import {
   FaArrowLeft,
   FaSave,
   FaBarcode,
-  FaUser,
   FaTrash,
 } from "react-icons/fa";
 
@@ -27,7 +26,6 @@ export default function EditarAlmacenado() {
   const { id } = useParams();
 
   const [nombre, setNombre] = useState("");
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [serie, setSerie] = useState("");
   const [lote, setLote] = useState("");
   const [categorias, setCategorias] = useState([]);
@@ -102,7 +100,6 @@ export default function EditarAlmacenado() {
     }
 
     setNombre(data.nombre ?? "");
-    setNombreResponsable(data.nombre_responsable ?? "");
     setSerie(data.serie ?? "");
     setLote(data.lote ?? "");
     setCategoria(data.categoria_id ? String(data.categoria_id) : "");
@@ -175,7 +172,6 @@ export default function EditarAlmacenado() {
       .from("almacenados")
       .update({
         nombre,
-        nombre_responsable: nombreResponsable.trim() || null,
         serie,
         lote,
         categoria_id: mostrarCategoria ? Number(categoria) : null,
@@ -328,26 +324,6 @@ export default function EditarAlmacenado() {
                       </option>
                     ))}
                   </select>
-                </div>
-              </div>
-
-              {/* NOMBRE RESPONSABLE */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre del Responsable{" "}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
-                </label>
-
-                <div className="relative">
-                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
-
-                  <input
-                    type="text"
-                    value={nombreResponsable}
-                    onChange={(e) => setNombreResponsable(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
-                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
-                  />
                 </div>
               </div>
 

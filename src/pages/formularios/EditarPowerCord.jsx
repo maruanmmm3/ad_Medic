@@ -12,7 +12,6 @@ export default function EditarPowerCord() {
   const [guardando, setGuardando] = useState(false);
   const [loading, setLoading] = useState(true);
 
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [lote, setLote] = useState("");
   const [limpieza, setLimpieza] = useState(false);
   const [prueba, setPrueba] = useState(false);
@@ -42,7 +41,6 @@ export default function EditarPowerCord() {
         return;
       }
 
-      setNombreResponsable(data.nombre_responsable);
       setLote(data.lote);
       setCategoria(data.categoria_id);
       setLimpieza(data.limpieza);
@@ -76,22 +74,11 @@ export default function EditarPowerCord() {
   }, []);
 
   const actualizar = async () => {
-    if (!nombreResponsable.trim()) {
-      Swal.fire({
-        icon: "warning",
-        title: "Campo requerido",
-        text: "Ingrese el nombre del responsable",
-      });
-
-      return;
-    }
-
     setGuardando(true);
 
     const { error } = await supabase
       .from("powercord")
       .update({
-        nombre_responsable: nombreResponsable,
         lote,
         categoria_id: categoria,
         limpieza,
@@ -189,24 +176,6 @@ export default function EditarPowerCord() {
         </div>
 
         <div className="grid md:grid-cols-2 gap-5">
-          <input
-            value={nombreResponsable}
-            onChange={(e) => setNombreResponsable(e.target.value)}
-            placeholder="Responsable"
-            className="
-        w-full
-        border-2
-        border-slate-200
-        rounded-2xl
-        px-5
-        py-4
-        text-lg
-        outline-none
-        focus:border-cyan-500
-        transition-all
-        "
-          />
-
           <input
             value={lote}
             onChange={(e) => setLote(e.target.value)}

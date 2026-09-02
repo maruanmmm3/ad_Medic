@@ -107,8 +107,8 @@ export default function PowerCord() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "--";
-    const [year, month, day] = fecha.split("-");
-    return `${day}/${month}/${year}`;
+    // La columna "fecha" es tipo date en Supabase, ya viene como YYYY-MM-DD
+    return fecha.split("T")[0];
   };
 
   const Estado = ({ valor }) => {

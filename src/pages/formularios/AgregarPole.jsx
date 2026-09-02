@@ -2,13 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
-import {
-  FaHeartbeat,
-  FaArrowLeft,
-  FaSave,
-  FaBarcode,
-  FaUser,
-} from "react-icons/fa";
+import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 import ImagenCategoria from "../../components/ImagenCategoria";
 
 export default function AgregarPole() {
@@ -17,7 +11,6 @@ export default function AgregarPole() {
   const [nombre, setNombre] = useState("");
   const [serie, setSerie] = useState("");
   const [lote, setLote] = useState("");
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [loading, setLoading] = useState(false);
   const [categorias, setCategorias] = useState([]);
   const [categoria, setCategoria] = useState("");
@@ -75,10 +68,9 @@ export default function AgregarPole() {
         nombre: nombre.trim() || null,
         serie,
         lote,
-        nombre_responsable: nombreResponsable.trim() || null,
         categoria_id: Number(categoria),
         usuario_id: usuarioId, // Asignar el ID del usuario actual
-        fecha: new Date().toISOString(),
+        fecha: new Date().toISOString().split("T")[0],
         recoleccion: false,
         recuperacion: false,
         base: false,
@@ -211,24 +203,6 @@ export default function AgregarPole() {
                     onChange={(e) => setNombre(e.target.value)}
                     placeholder="Ej: Pole Clamp SP"
                     className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition"
-                  />
-                </div>
-              </div>
-
-              {/* NOMBRE RESPONSABLE */}
-              <div>
-                <label className="block text-slate-700 font-semibold mb-2">
-                  Nombre del Responsable{" "}
-                  <span className="text-slate-400 font-normal">(opcional)</span>
-                </label>
-                <div className="relative">
-                  <FaUser className="absolute left-4 top-5 text-cyan-600" />
-                  <input
-                    type="text"
-                    value={nombreResponsable}
-                    onChange={(e) => setNombreResponsable(e.target.value)}
-                    placeholder="Ej: Juan Pérez"
-                    className="w-full border-2 border-slate-200 rounded-2xl pl-12 pr-5 py-4 outline-none focus:border-cyan-500 transition"
                   />
                 </div>
               </div>

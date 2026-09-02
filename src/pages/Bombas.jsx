@@ -37,7 +37,9 @@ export default function Bombas() {
 
     let query = supabase
       .from("bombas")
-      .select("*, categorias(nombre)", { count: "exact" })
+      .select("*, categorias(nombre, referencia(nombre, modelos(nombre)))", {
+        count: "exact",
+      })
       .order("fecha", { ascending: false });
 
     if (filtroResponsable.trim()) {
@@ -118,12 +120,23 @@ export default function Bombas() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
-    return new Date(fecha).toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      timeZone: "UTC", // 👈 esto evita el desfase
-    });
+    const d = new Date(fecha);
+    const year = d.getUTCFullYear();
+    const month = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const day = String(d.getUTCDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  // El nombre de la máquina viene de referencia (1 por categoría).
+  // Si la categoría aún no tiene una referencia asignada, se usa el campo "nombre" como respaldo.
+  const obtenerNombreMaquina = (m) => {
+    const referenciaNombre = m.categorias?.referencia?.[0]?.nombre;
+    return referenciaNombre || m.nombre || "--";
+  };
+
+  // El modelo viene de referencia -> modelos (referencia.modelos_id -> modelos.id)
+  const obtenerModelo = (m) => {
+    return m.categorias?.referencia?.[0]?.modelos?.nombre || "--";
   };
 
   const Estado = ({ valor }) => {
@@ -284,12 +297,12 @@ export default function Bombas() {
                       className={`border-b hover:bg-cyan-50 transition cursor-pointer
                       ${index % 2 === 0 ? "bg-white" : "bg-slate-50"}`}
                     >
-                      <td className="px-6 py-5 font-bold">{m.nombre}</td>
-                      <td className="px-6 py-5">
-                        {m.nombre_responsable || "--"}
+                      <td className="px-6 py-5 font-bold">
+                        {obtenerNombreMaquina(m)}
                       </td>
+                      <td className="px-6 py-5">{obtenerModelo(m)}</td>
                       <td className="px-6 py-5">{m.serie}</td>
-                      <td className="px-6 py-5">{m.lote}</td>
+                      <td className="px-6 py-5">{m?.lote || "--"}</td>
                       <td className="px-6 py-5">
                         {m.categorias?.nombre || "--"}
                       </td>
@@ -348,7 +361,7 @@ export default function Bombas() {
                 >
                   <div className="flex items-start justify-between gap-2">
                     <h3 className="font-bold text-slate-800 text-base">
-                      {m.nombre}
+                      {obtenerNombreMaquina(m)}
                     </h3>
                     <span className="text-xs text-slate-400 whitespace-nowrap shrink-0">
                       {formatearFecha(m.fecha)}

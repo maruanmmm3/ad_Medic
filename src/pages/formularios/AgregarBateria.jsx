@@ -69,6 +69,9 @@ export default function AgregarBateria() {
 
     setLoading(true);
 
+    // Formatear la fecha en formato YYYY-MM-DD
+    const fechaFormateada = new Date().toISOString().split("T")[0];
+
     const { error } = await supabase.from("baterias").insert([
       {
         nombre_responsable: nombreResponsable.trim() || null,
@@ -76,7 +79,7 @@ export default function AgregarBateria() {
         lote,
         categoria_id: Number(categoria),
         usuario_id: usuarioId, // Asignar el ID del usuario actual
-        fecha: new Date().toISOString(),
+        fecha: fechaFormateada,
         mantenimiento: false,
         prueba: false,
         cargatotal: false,

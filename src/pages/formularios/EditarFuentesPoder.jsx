@@ -12,7 +12,6 @@ export default function EditarFuentespoder() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [serie, setSerie] = useState("");
   const [lote, setLote] = useState("");
 
@@ -71,7 +70,6 @@ export default function EditarFuentespoder() {
       }
 
       setNombre(data.nombre ?? "");
-      setNombreResponsable(data.nombre_responsable ?? "");
       setSerie(data.serie ?? "");
       setLote(data.lote ?? "");
 
@@ -139,7 +137,6 @@ export default function EditarFuentespoder() {
       .from("fuentespoder")
       .update({
         nombre: nombre.trim() || null,
-        nombre_responsable: nombreResponsable.trim() || null,
         serie,
         lote: lote.trim() || null,
         categoria_id: Number(categoria),
@@ -297,13 +294,6 @@ export default function EditarFuentespoder() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre (opcional)"
-            className="w-full border-2 rounded-2xl px-5 py-4"
-          />
-
-          <input
-            value={nombreResponsable}
-            onChange={(e) => setNombreResponsable(e.target.value)}
-            placeholder="Responsable (opcional)"
             className="w-full border-2 rounded-2xl px-5 py-4"
           />
 

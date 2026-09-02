@@ -12,7 +12,6 @@ export default function EditarBomba() {
   const [guardando, setGuardando] = useState(false);
 
   const [nombre, setNombre] = useState("");
-  const [nombreResponsable, setNombreResponsable] = useState("");
   const [serie, setSerie] = useState("");
   const [lote, setLote] = useState("");
   const [recoleccion, setRecoleccion] = useState(false);
@@ -67,7 +66,6 @@ export default function EditarBomba() {
       }
 
       setNombre(data.nombre);
-      setNombreResponsable(data.nombre_responsable);
       setSerie(data.serie);
       setLote(data.lote);
       setCategoria(data.categoria_id);
@@ -142,7 +140,6 @@ export default function EditarBomba() {
         .from("bombas")
         .update({
           nombre,
-          nombre_responsable: nombreResponsable,
           serie,
           lote,
           categoria_id: categoria,
@@ -353,24 +350,6 @@ export default function EditarBomba() {
             value={nombre}
             onChange={(e) => setNombre(e.target.value)}
             placeholder="Nombre"
-            className="
-        w-full
-        border-2
-        border-slate-200
-        rounded-2xl
-        px-5
-        py-4
-        text-lg
-        outline-none
-        focus:border-cyan-500
-        transition-all
-        "
-          />
-
-          <input
-            value={nombreResponsable}
-            onChange={(e) => setNombreResponsable(e.target.value)}
-            placeholder="Responsable"
             className="
         w-full
         border-2
