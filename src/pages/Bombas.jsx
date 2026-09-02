@@ -261,7 +261,7 @@ export default function Bombas() {
                 <thead>
                   <tr className="bg-cyan-700 text-white text-sm uppercase">
                     <th className="px-6 py-5 text-left">Máquina</th>
-                    <th className="px-6 py-5 text-left">Responsable</th>
+                    <th className="px-6 py-5 text-left">Modelo</th>
                     <th className="px-6 py-5 text-left">Serie</th>
                     <th className="px-6 py-5 text-left">Lote</th>
                     <th className="px-6 py-5 text-left">Categoría</th>

@@ -205,7 +205,7 @@ function PanelControl() {
             >
               <span className="flex items-center gap-3">
                 <FaThLarge className="text-lg" />
-                Máquinas
+                Equipos y Accesorios
               </span>
               <FaChevronDown
                 className={`text-xs transition-transform ${

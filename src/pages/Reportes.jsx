@@ -814,7 +814,7 @@ export default function Reportes() {
                   <th className="text-left p-4">Pedido</th>
                   <th className="text-left p-4">Categoría</th>
                   <th className="text-left p-4">Ubicación</th>
-                  <th className="text-left p-4">Responsable</th>
+                  {/* <th className="text-left p-4">Responsable</th> */}
                   <th className="text-left p-4">Usuario</th>
                   <th className="text-left p-4">Estado</th>
                   <th className="text-left p-4">Etapa</th>
@@ -842,7 +842,7 @@ export default function Reportes() {
                     <td className="p-4 whitespace-nowrap">{r.pedido}</td>
                     <td className="p-4 whitespace-nowrap">{r.categoria}</td>
                     <td className="p-4 whitespace-nowrap">{r.ubicacion}</td>
-                    <td className="p-4 whitespace-nowrap">{r.responsable}</td>
+                    {/*  <td className="p-4 whitespace-nowrap">{r.responsable}</td> */}
                     <td className="p-4 whitespace-nowrap">{r.usuario}</td>
                     <td className="p-4 whitespace-nowrap">
                       {r.completado ? (
