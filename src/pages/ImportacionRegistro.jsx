@@ -242,15 +242,25 @@ function extraerFilasEquipos(hoja) {
       }
     }
 
-    // Cada "ID" marca el inicio de una tabla distinta en esta misma fila
-    const iniciosBloque = encabezados
+    // Cada "ID" marca el inicio de una tabla distinta en esta misma fila.
+    // El mismo formulario suele venir duplicado (izquierda y derecha) como
+    // dos copias idénticas: solo nos interesa la tabla de la IZQUIERDA
+    // (el primer "ID" de la fila), así que ignoramos cualquier bloque
+    // adicional que aparezca a la derecha del primero.
+    const todosLosInicios = encabezados
       .filter((e) => e.clave === "ID")
       .map((e) => e.col);
-    if (iniciosBloque.length === 0) continue;
+    if (todosLosInicios.length === 0) continue;
+
+    const iniciosBloque = [todosLosInicios[0]];
 
     iniciosBloque.forEach((inicioCol, idx) => {
       const finCol =
-        idx + 1 < iniciosBloque.length ? iniciosBloque[idx + 1] - 1 : rango.e.c;
+        idx + 1 < iniciosBloque.length
+          ? iniciosBloque[idx + 1] - 1
+          : todosLosInicios.length > 1
+            ? todosLosInicios[1] - 1
+            : rango.e.c;
 
       const columnasBloque = {};
       encabezados
