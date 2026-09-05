@@ -5,25 +5,30 @@ import { FaArrowLeft, FaTrash } from "react-icons/fa";
 import EstadoCard from "../../components/EstadoCard";
 import ImagenCategoria from "../../components/ImagenCategoria";
 import Swal from "sweetalert2";
-import imgInfusoraSpacePlus from "../../assets/images/CORTADA_ISP_.png";
-import imgPerfusoraSpacePlus from "../../assets/images/CORTADA_PSP_.png";
 
-// Imágenes que reemplazan la de la BD cuando la máquina es "Space Plus"
-const IMAGENES_SPACE_PLUS = {
-  Infusora: imgInfusoraSpacePlus,
-  Perfusora: imgPerfusoraSpacePlus,
-};
+// Categorías que tienen una versión "cortada" especial para Space Plus
+const CATEGORIAS_CON_VERSION_SPACE_PLUS = ["Infusora", "Perfusora"];
 
-// Devuelve la imagen correcta según la máquina y la categoría seleccionada
+// Si la máquina es "Space Plus" y la categoría es Infusora/Perfusora,
+// le agrega un "_" justo antes de la extensión del archivo para que
+// apunte a la imagen "cortada" correspondiente (ej: CORTADA_ISP.png -> CORTADA_ISP_.png)
 function obtenerImagenCategoria(nombreResponsable, categoriaSeleccionada) {
   if (!categoriaSeleccionada) return undefined;
 
-  if (nombreResponsable === "Space Plus") {
-    const imagenOverride = IMAGENES_SPACE_PLUS[categoriaSeleccionada.nombre];
-    if (imagenOverride) return imagenOverride;
-  }
+  const { nombre, url_imagen } = categoriaSeleccionada;
 
-  return categoriaSeleccionada.url_imagen;
+  const aplicaVersionSpacePlus =
+    nombreResponsable === "Space Plus" &&
+    CATEGORIAS_CON_VERSION_SPACE_PLUS.includes(nombre) &&
+    !!url_imagen;
+
+  if (!aplicaVersionSpacePlus) return url_imagen;
+
+  const ultimoPunto = url_imagen.lastIndexOf(".");
+
+  if (ultimoPunto === -1) return `${url_imagen}_`;
+
+  return `${url_imagen.slice(0, ultimoPunto)}_${url_imagen.slice(ultimoPunto)}`;
 }
 
 export default function EditarBomba() {
