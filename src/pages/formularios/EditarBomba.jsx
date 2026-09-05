@@ -5,6 +5,26 @@ import { FaArrowLeft, FaTrash } from "react-icons/fa";
 import EstadoCard from "../../components/EstadoCard";
 import ImagenCategoria from "../../components/ImagenCategoria";
 import Swal from "sweetalert2";
+import imgInfusoraSpacePlus from "../../assets/images/CORTADA_ISP_.png";
+import imgPerfusoraSpacePlus from "../../assets/images/CORTADA_PSP_.png";
+
+// Imágenes que reemplazan la de la BD cuando la máquina es "Space Plus"
+const IMAGENES_SPACE_PLUS = {
+  Infusora: imgInfusoraSpacePlus,
+  Perfusora: imgPerfusoraSpacePlus,
+};
+
+// Devuelve la imagen correcta según la máquina y la categoría seleccionada
+function obtenerImagenCategoria(nombreResponsable, categoriaSeleccionada) {
+  if (!categoriaSeleccionada) return undefined;
+
+  if (nombreResponsable === "Space Plus") {
+    const imagenOverride = IMAGENES_SPACE_PLUS[categoriaSeleccionada.nombre];
+    if (imagenOverride) return imagenOverride;
+  }
+
+  return categoriaSeleccionada.url_imagen;
+}
 
 export default function EditarBomba() {
   const { id } = useParams();
@@ -422,10 +442,10 @@ export default function EditarBomba() {
           </select>
 
           <ImagenCategoria
-            urlImagen={
-              categorias.find((c) => String(c.id) === String(categoria))
-                ?.url_imagen
-            }
+            urlImagen={obtenerImagenCategoria(
+              nombre,
+              categorias.find((c) => String(c.id) === String(categoria)),
+            )}
             nombre={
               categorias.find((c) => String(c.id) === String(categoria))
                 ?.nombre

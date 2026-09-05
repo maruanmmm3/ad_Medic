@@ -4,6 +4,8 @@ import { supabase } from "../../lib/supabase";
 import Swal from "sweetalert2";
 import { FaHeartbeat, FaArrowLeft, FaSave, FaBarcode } from "react-icons/fa";
 import ImagenCategoria from "../../components/ImagenCategoria";
+import imgInfusoraSpacePlus from "../../assets/images/CORTADA_ISP_.png";
+import imgPerfusoraSpacePlus from "../../assets/images/CORTADA_PSP_.png";
 
 // Categorías exclusivas de "Space Plus"
 const CATEGORIAS_SPACE_PLUS = [
@@ -11,6 +13,24 @@ const CATEGORIAS_SPACE_PLUS = [
   "Compact Perfusora",
   "Enteroport",
 ];
+
+// Imágenes que reemplazan la de la BD cuando la máquina es "Space Plus"
+const IMAGENES_SPACE_PLUS = {
+  Infusora: imgInfusoraSpacePlus,
+  Perfusora: imgPerfusoraSpacePlus,
+};
+
+// Devuelve la imagen correcta según la máquina y la categoría seleccionada
+function obtenerImagenCategoria(nombreResponsable, categoriaSeleccionada) {
+  if (!categoriaSeleccionada) return undefined;
+
+  if (nombreResponsable === "Space Plus") {
+    const imagenOverride = IMAGENES_SPACE_PLUS[categoriaSeleccionada.nombre];
+    if (imagenOverride) return imagenOverride;
+  }
+
+  return categoriaSeleccionada.url_imagen;
+}
 
 export default function AgregarBomba() {
   const navigate = useNavigate();
@@ -319,11 +339,12 @@ export default function AgregarBomba() {
                 </div>
 
                 <ImagenCategoria
-                  urlImagen={
+                  urlImagen={obtenerImagenCategoria(
+                    nombreResponsable,
                     categoriasFiltradas.find(
                       (c) => String(c.id) === String(categoria),
-                    )?.url_imagen
-                  }
+                    ),
+                  )}
                   nombre={
                     categoriasFiltradas.find(
                       (c) => String(c.id) === String(categoria),
