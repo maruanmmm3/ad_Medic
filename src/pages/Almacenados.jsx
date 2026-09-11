@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
@@ -8,8 +8,79 @@ import {
   FaFilter,
   FaTimes,
   FaChevronRight,
+  FaFileExcel,
+  FaSpinner,
 } from "react-icons/fa";
 import Swal from "sweetalert2";
+import * as XLSX from "xlsx";
+
+// ---------------------------------------------------------------------------
+// Utilidades para limpiar los datos que vienen del Excel de inventario.
+// El archivo original tiene columnas: CTDA. | SN | Lote | Referencia |
+// Año Fbcn | Ubicaciòn, y los datos vienen con formatos inconsistentes
+// (fechas como texto, como Date, o solo el año; referencias como número
+// o como texto con espacios), así que se normalizan antes de insertarlos.
+// ---------------------------------------------------------------------------
+
+const limpiarTexto = (valor) => {
+  if (valor === null || valor === undefined) return null;
+  const texto = String(valor).trim();
+  return texto === "" ? null : texto;
+};
+
+// La "Referencia" a veces llega como número (8713050) y Excel le agrega
+// ".0"; y a veces como texto con espacios (" 8713050"). Esto lo deja limpio.
+const limpiarReferencia = (valor) => {
+  const texto = limpiarTexto(valor);
+  if (!texto) return null;
+  return texto.replace(/\.0$/, "");
+};
+
+// La columna "Año Fbcn" trae fechas completas (Date), texto en varios
+// formatos ("2019-05-09", "2023/06/13") o solo el año ("2018"). Esta
+// función intenta normalizar todo eso a un ISO string válido para
+// guardarlo en una columna timestamptz, o null si no se puede interpretar.
+const parsearFecha = (valor) => {
+  if (valor === null || valor === undefined || valor === "") return null;
+
+  if (valor instanceof Date && !isNaN(valor)) {
+    return valor.toISOString();
+  }
+
+  if (typeof valor === "number") {
+    // Número de serie de Excel (fecha mal formateada en la celda)
+    const fechaExcel = XLSX.SSF.parse_date_code(valor);
+    if (fechaExcel) {
+      const fecha = new Date(
+        Date.UTC(fechaExcel.y, fechaExcel.m - 1, fechaExcel.d),
+      );
+      if (!isNaN(fecha)) return fecha.toISOString();
+    }
+    return null;
+  }
+
+  const texto = String(valor).trim();
+  if (!texto) return null;
+
+  // Solo el año, ej: "2018"
+  if (/^\d{4}$/.test(texto)) {
+    return `${texto}-01-01T00:00:00.000Z`;
+  }
+
+  // "YYYY-MM-DD" o "YYYY/MM/DD"
+  const coincidencia = texto.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (coincidencia) {
+    const [, anio, mes, dia] = coincidencia;
+    const fecha = new Date(
+      Date.UTC(Number(anio), Number(mes) - 1, Number(dia)),
+    );
+    if (!isNaN(fecha)) return fecha.toISOString();
+  }
+
+  // Último intento: dejar que el motor de JS la interprete
+  const intento = new Date(texto);
+  return isNaN(intento) ? null : intento.toISOString();
+};
 
 export default function Almacenados() {
   const [almacenados, setAlmacenados] = useState([]);
@@ -26,8 +97,184 @@ export default function Almacenados() {
   const [filtroFecha, setFiltroFecha] = useState("");
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
+  // IMPORTACIÓN DESDE EXCEL
+  const [importando, setImportando] = useState(false);
+  const [progresoImport, setProgresoImport] = useState({ actual: 0, total: 0 });
+  const fileInputRef = useRef(null);
+
   const navigate = useNavigate();
   const location = useLocation();
+
+  const handleImportClick = () => fileInputRef.current?.click();
+
+  const handleFileChange = async (e) => {
+    const archivo = e.target.files?.[0];
+    e.target.value = ""; // permite volver a elegir el mismo archivo después
+
+    if (!archivo) return;
+
+    setImportando(true);
+    setProgresoImport({ actual: 0, total: 0 });
+
+    try {
+      const buffer = await archivo.arrayBuffer();
+      const libro = XLSX.read(buffer, { type: "array", cellDates: true });
+      const hoja = libro.Sheets[libro.SheetNames[0]];
+
+      // header:1 -> filas como arreglos, para ubicar nosotros mismos
+      // la fila de encabezados (el archivo trae un título en la fila 1).
+      const filas = XLSX.utils.sheet_to_json(hoja, {
+        header: 1,
+        defval: null,
+      });
+
+      const idxEncabezado = filas.findIndex((fila) =>
+        fila.some(
+          (celda) =>
+            String(celda ?? "")
+              .trim()
+              .toUpperCase() === "SN",
+        ),
+      );
+
+      if (idxEncabezado === -1) {
+        throw new Error(
+          "No se encontró la fila de encabezados (CTDA., SN, Lote, Referencia...) en el archivo.",
+        );
+      }
+
+      const filasDatos = filas.slice(idxEncabezado + 1);
+
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (!user) {
+        throw new Error("Debes iniciar sesión antes de importar.");
+      }
+
+      // Trae el catálogo de "referencia" para poder cruzar cada código del
+      // Excel y autocompletar categoria_id y modelos_id en "almacenados".
+      // Si algún código no aparece en este catálogo, esa fila queda con
+      // categoria_id en NULL y "nombre" usa el valor genérico "Bomba".
+      const { data: referencias, error: errorReferencias } = await supabase
+        .from("referencia")
+        .select("codigo, nombre, categoria_id, modelos_id");
+
+      if (errorReferencias) throw errorReferencias;
+
+      // Trae "modelos" para poder traducir referencia.modelos_id al nombre
+      // real del modelo (ej. "space" -> se guardará como "Space").
+      const { data: modelos, error: errorModelos } = await supabase
+        .from("modelos")
+        .select("id, nombre");
+
+      if (errorModelos) throw errorModelos;
+
+      const mapaReferencias = new Map();
+      (referencias || []).forEach((ref) => {
+        const codigoLimpio = limpiarReferencia(ref.codigo);
+        if (codigoLimpio) mapaReferencias.set(codigoLimpio, ref);
+      });
+
+      const mapaModelos = new Map();
+      (modelos || []).forEach((modelo) => {
+        mapaModelos.set(modelo.id, modelo.nombre);
+      });
+
+      // "space" -> "Space", "space plus" -> "Space Plus"
+      const capitalizarPalabras = (texto) =>
+        texto
+          .toLowerCase()
+          .split(" ")
+          .map((palabra) => palabra.charAt(0).toUpperCase() + palabra.slice(1))
+          .join(" ");
+
+      const codigosSinCoincidencia = new Set();
+
+      // Orden de columnas del Excel: CTDA. | SN | Lote | Referencia | Año Fbcn | Ubicaciòn
+      const registros = filasDatos
+        .map((fila) => {
+          const [, sn, lote, referencia, anioFbcn, ubicacion] = fila;
+
+          const serie = limpiarTexto(sn);
+          const codigo = limpiarReferencia(referencia);
+
+          // Omite filas completamente vacías
+          if (!serie && !codigo && !limpiarTexto(lote)) return null;
+
+          const refEncontrada = codigo ? mapaReferencias.get(codigo) : null;
+          if (codigo && !refEncontrada) codigosSinCoincidencia.add(codigo);
+
+          const nombreModelo = refEncontrada?.modelos_id
+            ? mapaModelos.get(refEncontrada.modelos_id)
+            : null;
+
+          return {
+            // "nombre" sale del modelo real (referencia -> modelos), para
+            // que calce con los valores que usa el registro manual
+            // (Space / Space Plus). Si no hay coincidencia o la referencia
+            // no tiene modelo asignado, se usa "Bomba" como respaldo.
+            nombre: nombreModelo ? capitalizarPalabras(nombreModelo) : "Bomba",
+            // Nombre descriptivo de la bomba específica (catálogo "referencia")
+            nombre_referencia:
+              refEncontrada?.nombre || codigo || "Sin referencia",
+            serie,
+            lote: limpiarTexto(lote),
+            ubicacion: limpiarTexto(ubicacion),
+            fecha: parsearFecha(anioFbcn),
+            estado: "Operativa",
+            nota: null,
+            categoria_id: refEncontrada?.categoria_id ?? null,
+            usuario_id: user.id,
+          };
+        })
+        .filter(Boolean);
+
+      if (registros.length === 0) {
+        throw new Error("No se encontraron filas válidas para importar.");
+      }
+
+      // Inserta en lotes para no exceder límites de tamaño de petición
+      const TAMANO_LOTE = 500;
+      let insertados = 0;
+
+      setProgresoImport({ actual: 0, total: registros.length });
+
+      for (let i = 0; i < registros.length; i += TAMANO_LOTE) {
+        const lote = registros.slice(i, i + TAMANO_LOTE);
+        const { error } = await supabase.from("almacenados").insert(lote);
+        if (error) throw error;
+        insertados += lote.length;
+        setProgresoImport({ actual: insertados, total: registros.length });
+      }
+
+      await Swal.fire({
+        title: "📦 Importación completa",
+        html: `Se importaron <b>${insertados}</b> de ${filasDatos.length} filas leídas correctamente.${
+          codigosSinCoincidencia.size > 0
+            ? `<br/><br/>⚠️ <b>${codigosSinCoincidencia.size}</b> código(s) no se encontraron en la tabla "referencia" (quedaron sin categoría): <br/><span style="font-size:0.85em">${[...codigosSinCoincidencia].join(", ")}</span>`
+            : ""
+        }`,
+        icon: "success",
+        confirmButtonColor: "#0891b2",
+      });
+
+      setPage(1);
+      obtenerDatos(1);
+    } catch (error) {
+      console.error(error);
+      Swal.fire({
+        title: "Error al importar",
+        text: error.message || "Ocurrió un error al procesar el archivo.",
+        icon: "error",
+        confirmButtonColor: "#0891b2",
+      });
+    } finally {
+      setImportando(false);
+      setProgresoImport({ actual: 0, total: 0 });
+    }
+  };
 
   const obtenerDatos = async (pagina = 1) => {
     setLoading(true);
@@ -127,13 +374,14 @@ export default function Almacenados() {
 
   const formatearFecha = (fecha) => {
     if (!fecha) return "-";
-    return new Date(fecha).toLocaleDateString("es-PE", {
-      day: "2-digit",
-      month: "2-digit",
-      year: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
+    const d = new Date(fecha);
+    if (isNaN(d)) return "-";
+    // Se usa UTC para que no se corra un día por el huso horario local,
+    // ya que muchas fechas importadas solo tienen el año (sin hora real).
+    const anio = d.getUTCFullYear();
+    const mes = String(d.getUTCMonth() + 1).padStart(2, "0");
+    const dia = String(d.getUTCDate()).padStart(2, "0");
+    return `${anio}-${mes}-${dia}`;
   };
 
   const EstadoBadge = ({ valor }) => {
@@ -154,6 +402,41 @@ export default function Almacenados() {
 
   return (
     <div className="min-h-screen bg-slate-100 p-4 md:p-8">
+      {/* OVERLAY DE PROGRESO DE IMPORTACIÓN */}
+      {importando && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-2xl p-6 md:p-8 w-full max-w-sm">
+            <div className="flex items-center gap-3 mb-4">
+              <FaSpinner className="animate-spin text-cyan-600 text-2xl shrink-0" />
+              <p className="text-slate-800 font-semibold">
+                Importando Excel...
+              </p>
+            </div>
+
+            <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
+              <div
+                className="bg-cyan-600 h-3 rounded-full transition-all duration-300 ease-out"
+                style={{
+                  width: progresoImport.total
+                    ? `${Math.round(
+                        (progresoImport.actual / progresoImport.total) * 100,
+                      )}%`
+                    : "15%",
+                }}
+              />
+            </div>
+
+            <p className="text-slate-500 text-sm mt-2 text-center">
+              {progresoImport.total
+                ? `${progresoImport.actual} de ${progresoImport.total} registros (${Math.round(
+                    (progresoImport.actual / progresoImport.total) * 100,
+                  )}%)`
+                : "Leyendo archivo..."}
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* TITULO */}
       <div className="mb-6 md:mb-8">
         <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -179,6 +462,27 @@ export default function Almacenados() {
             >
               <FaArrowLeft />
               <span className="hidden sm:inline">Regresar</span>
+            </button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".xlsx,.xls"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+
+            <button
+              onClick={handleImportClick}
+              disabled={importando}
+              className="flex-1 md:flex-none flex items-center justify-center gap-2 px-4 md:px-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-60 text-white rounded-xl shadow-md transition text-sm md:text-base"
+            >
+              {importando ? (
+                <FaSpinner className="animate-spin" />
+              ) : (
+                <FaFileExcel />
+              )}
+              {importando ? "Importando..." : "Importar Excel"}
             </button>
 
             <button
@@ -320,9 +624,16 @@ export default function Almacenados() {
                 className="bg-white rounded-2xl shadow-md border border-slate-200 p-5 active:scale-[0.98] transition-transform cursor-pointer"
               >
                 <div className="flex items-start justify-between gap-3 mb-3">
-                  <h3 className="font-bold text-slate-800 text-lg leading-snug">
-                    {item.nombre || "Sin nombre"}
-                  </h3>
+                  <div>
+                    <h3 className="font-bold text-slate-800 text-lg leading-snug">
+                      {item.nombre || "Sin nombre"}
+                    </h3>
+                    {item.nombre_referencia && (
+                      <p className="text-slate-500 text-sm leading-snug">
+                        {item.nombre_referencia}
+                      </p>
+                    )}
+                  </div>
                   <EstadoBadge valor={item.estado} />
                 </div>
 
@@ -358,6 +669,15 @@ export default function Almacenados() {
                     </span>
                     <span className="text-slate-700">{item.lote || "-"}</span>
                   </div>
+
+                  <div>
+                    <span className="text-slate-400 block text-xs uppercase font-semibold">
+                      Ubicación
+                    </span>
+                    <span className="text-slate-700">
+                      {item.ubicacion || "-"}
+                    </span>
+                  </div>
                 </div>
 
                 {item.nota && (
@@ -383,9 +703,11 @@ export default function Almacenados() {
                 <thead>
                   <tr className="bg-cyan-700 text-white text-sm uppercase">
                     <th className="px-6 py-5 text-left">Nombre</th>
+                    <th className="px-6 py-5 text-left">Nombre Referencia</th>
                     <th className="px-6 py-5 text-left">Responsable</th>
                     <th className="px-6 py-5 text-left">Serie</th>
                     <th className="px-6 py-5 text-left">Lote</th>
+                    <th className="px-6 py-5 text-left">Ubicación</th>
                     <th className="px-6 py-5 text-left">Categoría</th>
                     <th className="px-4 py-5 text-center">Estado</th>
                     <th className="px-6 py-5 text-left">Nota</th>
@@ -405,10 +727,14 @@ export default function Almacenados() {
                         {item.nombre || "-"}
                       </td>
                       <td className="px-6 py-5">
+                        {item.nombre_referencia || "-"}
+                      </td>
+                      <td className="px-6 py-5">
                         {item.nombre_responsable || "-"}
                       </td>
                       <td className="px-6 py-5">{item.serie || "-"}</td>
                       <td className="px-6 py-5">{item.lote || "-"}</td>
+                      <td className="px-6 py-5">{item.ubicacion || "-"}</td>
                       <td className="px-6 py-5">
                         {item.categorias?.nombre || "Sin categoría"}
                       </td>

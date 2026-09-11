@@ -18,8 +18,18 @@ const nombresDisponibles = [
 ];
 const estadosDisponibles = ["Operativa", "Inoperativa"];
 
+// Mismos valores usados en el Excel de inventario, para mantener
+// consistencia con los registros importados.
+const ubicacionesDisponibles = ["TALLER", "OFICINA", "DESINFECCIÒN"];
+
 // Nombres para los cuales la categoría se oculta dinámicamente
 const NOMBRES_SIN_CATEGORIA = ["Compact Plus", "Enteroport"];
+
+// Para "Space" solo se permiten estas dos categorías; los demás nombres
+// (ej. "Space Plus") pueden ver todas las categorías de tipo Bomba.
+const CATEGORIAS_LIMITADAS_POR_NOMBRE = {
+  Space: ["Infusora", "Perfusora"],
+};
 
 export default function EditarAlmacenado() {
   const navigate = useNavigate();
@@ -32,6 +42,9 @@ export default function EditarAlmacenado() {
   const [categoria, setCategoria] = useState("");
   const [estado, setEstado] = useState("");
   const [nota, setNota] = useState("");
+  const [ubicacion, setUbicacion] = useState("");
+  // Formato YYYY-MM-DD (el mismo que usa <input type="date">)
+  const [fecha, setFecha] = useState("");
 
   const [loading, setLoading] = useState(false);
   const [cargando, setCargando] = useState(true);
@@ -40,6 +53,14 @@ export default function EditarAlmacenado() {
 
   const mostrarCategoria = !NOMBRES_SIN_CATEGORIA.includes(nombre);
   const notaHabilitada = estado === "Inoperativa";
+
+  // Lista de categorías que se muestran según el nombre seleccionado.
+  // Si el nombre no tiene restricción definida (ej. "Space Plus"), se
+  // muestran todas las categorías obtenidas de Supabase.
+  const categoriasPermitidas = CATEGORIAS_LIMITADAS_POR_NOMBRE[nombre];
+  const categoriasFiltradas = categoriasPermitidas
+    ? categorias.filter((cat) => categoriasPermitidas.includes(cat.nombre))
+    : categorias;
 
   /* Obtener datos del usuario logueado con Supabase Auth */
   useEffect(() => {
@@ -105,6 +126,9 @@ export default function EditarAlmacenado() {
     setCategoria(data.categoria_id ? String(data.categoria_id) : "");
     setEstado(data.estado ?? "");
     setNota(data.nota ?? "");
+    setUbicacion(data.ubicacion ?? "");
+    // La columna es timestamptz; el input type="date" necesita YYYY-MM-DD
+    setFecha(data.fecha ? new Date(data.fecha).toISOString().split("T")[0] : "");
     setCargando(false);
   };
 
@@ -121,6 +145,19 @@ export default function EditarAlmacenado() {
     // Si el nuevo nombre oculta la categoría, se limpia su valor
     if (NOMBRES_SIN_CATEGORIA.includes(nuevoNombre)) {
       setCategoria("");
+      return;
+    }
+
+    // Si el nuevo nombre restringe las categorías (ej. "Space") y la
+    // categoría ya elegida no está permitida, se limpia su valor
+    const permitidas = CATEGORIAS_LIMITADAS_POR_NOMBRE[nuevoNombre];
+    if (permitidas) {
+      const categoriaActual = categorias.find(
+        (cat) => String(cat.id) === String(categoria),
+      );
+      if (categoriaActual && !permitidas.includes(categoriaActual.nombre)) {
+        setCategoria("");
+      }
     }
   };
 
@@ -177,6 +214,8 @@ export default function EditarAlmacenado() {
         categoria_id: mostrarCategoria ? Number(categoria) : null,
         estado,
         nota: notaHabilitada ? nota.trim() || null : null,
+        fecha: fecha || null,
+        ubicacion: ubicacion || null,
       })
       .eq("id", id);
 
@@ -380,7 +419,7 @@ export default function EditarAlmacenado() {
                     >
                       <option value="">Seleccione una categoría</option>
 
-                      {categorias.map((cat) => (
+                      {categoriasFiltradas.map((cat) => (
                         <option key={cat.id} value={String(cat.id)}>
                           {cat.nombre}
                         </option>
@@ -406,6 +445,44 @@ export default function EditarAlmacenado() {
                     {estadosDisponibles.map((es) => (
                       <option key={es} value={es}>
                         {es}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+
+              {/* FECHA */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Fecha
+                </label>
+
+                <div className="relative">
+                  <input
+                    type="date"
+                    value={fecha}
+                    onChange={(e) => setFecha(e.target.value)}
+                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  />
+                </div>
+              </div>
+
+              {/* UBICACIÓN */}
+              <div>
+                <label className="block text-slate-700 font-semibold mb-2">
+                  Ubicación
+                </label>
+
+                <div className="relative">
+                  <select
+                    value={ubicacion}
+                    onChange={(e) => setUbicacion(e.target.value)}
+                    className="w-full border-2 border-slate-200 rounded-2xl px-5 py-4 outline-none focus:border-cyan-500 transition bg-white"
+                  >
+                    <option value="">Seleccione una ubicación</option>
+                    {ubicacionesDisponibles.map((u) => (
+                      <option key={u} value={u}>
+                        {u}
                       </option>
                     ))}
                   </select>
